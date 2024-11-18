@@ -21,6 +21,10 @@ void setup() {
   pinMode(Motor_A2, OUTPUT);
   pinMode(Motor_B1, OUTPUT);
   pinMode(Motor_B2, OUTPUT);
+  pinMode(rot_R1, INPUT_PULLUP);
+  pinMode(rot_R2, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(rot_R1), updaterotation_R1, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(rot_R2), updaterotation_R2, CHANGE);
 }
 
 void loop() {
@@ -120,4 +124,13 @@ void rotate_l() {
   }
   analogWrite(Motor_B2, 0);
   analogWrite(Motor_A1, 0);
+}
+
+void updaterotation_R1()
+{
+
+}
+void updaterotation_R2()
+{
+
 }
