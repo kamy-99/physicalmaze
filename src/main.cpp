@@ -3,7 +3,9 @@
 #define Motor_A1 11 //11
 #define Motor_A2 10 //10
 #define Motor_B1 9  //9
-#define Motor_B2 3  //3
+#define Motor_B2 5  //5
+#define rot_R1 2
+#define rot_R2 3
 
 void rotate_l();
 void rotate_r();
