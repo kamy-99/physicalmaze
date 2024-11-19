@@ -4,19 +4,21 @@
 #define Motor_A2 10 //10
 #define Motor_B1 9  //9
 #define Motor_B2 5  //5
-#define rot_R1 2
-#define rot_R2 3
+#define rot_R1 2 // R
+#define rot_R2 3 // L
 
-void rotate_l();
+void rotate_l(); // because of platform IO
 void rotate_r();
 void forward(int speed);
 void stop_();
 void backwards(int speed);
 void turn_l(int speed);
 void turn_r(int speed);
+void updaterotation_R2();
+void updaterotation_R1();
 
 void setup() {
-  // put your setup code here, to run once:
+  Serial.begin(9600);
   pinMode(Motor_A1, OUTPUT);
   pinMode(Motor_A2, OUTPUT);
   pinMode(Motor_B1, OUTPUT);
@@ -28,7 +30,8 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  
+  /*
    forward(255);
    delay(3000);
    stop_();
@@ -54,6 +57,7 @@ void loop() {
    rotate_l();
    stop_();
    delay(3000);
+   */
 }
 
 void forward(int speed) {
@@ -128,9 +132,9 @@ void rotate_l() {
 
 void updaterotation_R1()
 {
-
+  //static unsinged, noInterrupts(), interrupts(), 
 }
 void updaterotation_R2()
 {
-
+  Serial.println("2");
 }
