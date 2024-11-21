@@ -10,7 +10,7 @@
 const int trigPin = 7;  
 const int echoPin = 8; 
 float duration, ver_dis;
-float distance[];
+float distance[2] = {0.0, 0.0};
 
 void rotate_l(); // because of platform IO
 void rotate_r();
