@@ -6,21 +6,15 @@
 #define MOTOR_B2 5  //5
 #define ROT_R1 2 // R
 #define ROT_R2 3 // L
-<<<<<<< HEAD
 #define DVALUE 10 // debounce value in ms
 #define PI 3.141592653589793238462643383279502884197 // 39 digits or so
-
-// because of platform IO
-void rotate_l();
-=======
-#define DVALUE 10 // debounce value
 const int trigPin = 7;  
 const int echoPin = 8; 
 float duration, ver_dis;
 float distance[2] = {0.0, 0.0};
 
-void rotate_l(); // because of platform IO
->>>>>>> origin/kamy
+// because of platform IO
+void rotate_l();
 void rotate_r();
 void forward(int distance, int speed);
 void backwards(int distance, int speed);
@@ -29,12 +23,8 @@ void turn_l(int speed);
 void turn_r(int speed);
 void updaterotation_R2();
 void updaterotation_R1();
-<<<<<<< HEAD
 void updateSensor1();
 void updateSensor2();
-=======
-void sonar();
->>>>>>> origin/kamy
 
 int RRotation = 0;
 int LRotation = 0;
@@ -44,25 +34,15 @@ void setup() {
   pinMode(MOTOR_A2, OUTPUT);
   pinMode(MOTOR_B1, OUTPUT);
   pinMode(MOTOR_B2, OUTPUT);
-<<<<<<< HEAD
-=======
-  pinMode(trigPin, OUTPUT);  
-	pinMode(echoPin, INPUT); 
->>>>>>> origin/kamy
   pinMode(ROT_R1, INPUT_PULLUP);
   pinMode(ROT_R2, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(ROT_R1), updaterotation_R1, CHANGE);
   attachInterrupt(digitalPinToInterrupt(ROT_R2), updaterotation_R2, CHANGE);
-<<<<<<< HEAD
-=======
-  Serial.begin(9600);
->>>>>>> origin/kamy
 }
 
 int WheelC = 6.5*PI; // wheel circumference in cm 2*r*pi ~20.5cm I am not using our 1 library for getting near perfect PI
 
 void loop() {
-<<<<<<< HEAD
   /*
   for now the logic should look something like this - this is in a perfect world
   also this might not work since it might be a bit "choppy" as it moves
@@ -85,16 +65,10 @@ void loop() {
 
   rotate_l();
   delay(5000);
-=======
-  sonar();
-  
-
->>>>>>> origin/kamy
 }
 
 void forward(int distance, int speed) { // distance in cm & speed, might need to remove the distance part
   stop_();
-<<<<<<< HEAD
   int rotations = distance / WheelC;
   RRotation = 0;
   LRotation = 0;
@@ -105,13 +79,6 @@ void forward(int distance, int speed) { // distance in cm & speed, might need to
     analogWrite(MOTOR_A2, speed);
     analogWrite(MOTOR_B2, speed);
   }
-=======
-  analogWrite(MOTOR_A2, 255);
-  analogWrite(MOTOR_B2, 255);
-  delay(10);
-  analogWrite(MOTOR_A2, speed);
-  analogWrite(MOTOR_B2, speed);
->>>>>>> origin/kamy
 }
 
 void stop_() {
@@ -123,7 +90,6 @@ void stop_() {
 
 void backwards(int distance, int speed) { // distance in cm & speed, might need to remove the distance part
   stop_();
-<<<<<<< HEAD
   int rotations = distance / WheelC;
   RRotation = 0;
   LRotation = 0;
@@ -134,13 +100,6 @@ void backwards(int distance, int speed) { // distance in cm & speed, might need 
     analogWrite(MOTOR_A1, speed * 0.98);
     analogWrite(MOTOR_B1, speed);
   }
-=======
-  analogWrite(MOTOR_A1, 255);
-  analogWrite(MOTOR_B1, 255);
-  delay(10);
-  analogWrite(MOTOR_A1, speed * 0.98);
-  analogWrite(MOTOR_B1, speed);
->>>>>>> origin/kamy
 }
 
 void turn_r(int speed) { // don't need to change because we are not using turn only rotate
@@ -165,7 +124,6 @@ void turn_l(int speed) { // don't need to change because we are not using turn o
 
 void rotate_r() { // still needs some testing for perfect 90 degree turn
   stop_();
-<<<<<<< HEAD
   RRotation = 0;
   LRotation = 0;
   analogWrite(MOTOR_A2, 255);
@@ -223,7 +181,6 @@ void updaterotation_R2() // left rotation
   }
   interrupts();
 }
-<<<<<<< HEAD
 
 void updateSensor1() {
   static unsigned long timer;
@@ -240,7 +197,6 @@ void updateSensor2() {
   }
   timer = millis() + 250; // update every 0.25s can change
 }
-=======
 // void sonar()
 // {
 //   digitalWrite(trigPin, LOW);
@@ -284,4 +240,3 @@ void sonar()
     delay(250);
   }
 }
->>>>>>> origin/kamy
