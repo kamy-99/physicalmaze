@@ -41,6 +41,7 @@ int WheelC = 6.5*PI; // wheel circumference in cm 2*r*pi ~20.5cm I am not using 
 void loop() {
   /*
   for now the logic should look something like this - this is in a perfect world
+  also this might not work since it might be a bit "choppy" as it moves
 
   update sensor 1 (looking right)
   update sensor 2 (looking forward)
