@@ -75,8 +75,6 @@ void forward(int distance, int speed) { // distance in cm & speed, might need to
     analogWrite(MOTOR_A2, speed);
     analogWrite(MOTOR_B2, speed);
   }
-  RRotation = 0;
-  LRotation = 0;
 }
 
 void stop_() {
@@ -98,8 +96,6 @@ void backwards(int distance, int speed) { // distance in cm & speed, might need 
     analogWrite(MOTOR_A1, speed * 0.98);
     analogWrite(MOTOR_B1, speed);
   }
-  RRotation = 0;
-  LRotation = 0;
 }
 
 void turn_r(int speed) { // don't need to change because we are not using turn only rotate
@@ -124,6 +120,8 @@ void turn_l(int speed) { // don't need to change because we are not using turn o
 
 void rotate_r() { // still needs some testing for perfect 90 degree turn
   stop_();
+  RRotation = 0;
+  LRotation = 0;
   analogWrite(MOTOR_A2, 255);
   analogWrite(MOTOR_B1, 255);
   delay(5);
@@ -131,13 +129,13 @@ void rotate_r() { // still needs some testing for perfect 90 degree turn
     analogWrite(MOTOR_A2, 170);
     analogWrite(MOTOR_B1, 170);
   }
-  RRotation = 0;
-  LRotation = 0;
   stop_();
 }
 
 void rotate_l() { // still needs some testing for perfect 90 degree turn
   stop_();
+  RRotation = 0;
+  LRotation = 0;
   analogWrite(MOTOR_A1, 255);
   analogWrite(MOTOR_B2, 255);
   delay(5);
@@ -145,8 +143,6 @@ void rotate_l() { // still needs some testing for perfect 90 degree turn
     analogWrite(MOTOR_A1, 170);
     analogWrite(MOTOR_B2, 170);
   }
-  RRotation = 0;
-  LRotation = 0;
   stop_();
 }
 
