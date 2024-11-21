@@ -7,7 +7,7 @@
 #define ROT_R1 2 // R
 #define ROT_R2 3 // L
 #define DVALUE 10 // debounce value in ms
-#define PI 3.141592653589793238462643383279502884197 // 39 digits
+#define PI 3.141592653589793238462643383279502884197 // 39 digits or so
 
 // because of platform IO
 void rotate_l();
@@ -19,6 +19,8 @@ void turn_l(int speed);
 void turn_r(int speed);
 void updaterotation_R2();
 void updaterotation_R1();
+void updateSensor1();
+void updateSensor2();
 
 int RRotation = 0;
 int LRotation = 0;
@@ -34,14 +36,33 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(ROT_R2), updaterotation_R2, CHANGE);
 }
 
-int WheelC = 6.5*PI; // wheel circumference in cm 2*r*pi ~20.5cm 
+int WheelC = 6.5*PI; // wheel circumference in cm 2*r*pi ~20.5cm I am not using our 1 library for getting near perfect PI
 
 void loop() {
+  /*
+  for now the logic should look something like this - this is in a perfect world
+
+  update sensor 1 (looking right)
+  update sensor 2 (looking forward)
+  if (there's a line) { priority #1
+    follow it
+  } else {
+    if (nothing on right (-> there's a path)) { priority #2
+      rotate right
+      go forward X cm  
+    } else if (nothing forward) { priority # 3
+      go forward
+    } else if (wall in front && wall in right) {
+      rotate left
+    }
+  }
+  */
+
   rotate_l();
   delay(5000);
 }
 
-void forward(int distance, int speed) { // distance in cm & speed
+void forward(int distance, int speed) { // distance in cm & speed, might need to remove the distance part
   stop_();
   int rotations = distance / WheelC;
   RRotation = 0;
@@ -64,7 +85,7 @@ void stop_() {
   analogWrite(MOTOR_B1, 0);
 }
 
-void backwards(int distance, int speed) { // distance in cm & speed
+void backwards(int distance, int speed) { // distance in cm & speed, might need to remove the distance part
   stop_();
   int rotations = distance / WheelC;
   RRotation = 0;
@@ -100,7 +121,7 @@ void turn_l(int speed) { // don't need to change because we are not using turn o
   delay(4000);
 }
 
-void rotate_r() {
+void rotate_r() { // still needs some testing for perfect 90 degree turn
   stop_();
   analogWrite(MOTOR_A2, 255);
   analogWrite(MOTOR_B1, 255);
@@ -114,9 +135,8 @@ void rotate_r() {
   stop_();
 }
 
-void rotate_l() {
+void rotate_l() { // still needs some testing for perfect 90 degree turn
   stop_();
-  // should work have to test tho
   analogWrite(MOTOR_A1, 255);
   analogWrite(MOTOR_B2, 255);
   delay(5);
@@ -159,4 +179,20 @@ void updaterotation_R2() // left rotation
   timer = millis() + DVALUE;
   }
   interrupts();
+}
+
+void updateSensor1() {
+  static unsigned long timer;
+  if (millis() > timer) {
+    // update the sensor for looking right
+  }
+  timer = millis() + 250; // update every 0.25s can change
+}
+
+void updateSensor2() {
+  static unsigned long timer;
+  if (millis() > timer) {
+    // update the sensor for looking forward
+  }
+  timer = millis() + 250; // update every 0.25s can change
 }
