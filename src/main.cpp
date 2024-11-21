@@ -8,6 +8,7 @@
 #define ROT_R2 3 // L
 #define DVALUE 10 // debounce value in ms
 #define PI 3.141592653589793238462643383279502884197 // 39 digits or so
+
 const int trigPin = 7;  
 const int echoPin = 8; 
 float duration, ver_dis;
@@ -25,6 +26,7 @@ void updaterotation_R2();
 void updaterotation_R1();
 void updateSensor1();
 void updateSensor2();
+void Sonar2();
 
 int RRotation = 0;
 int LRotation = 0;
@@ -193,7 +195,7 @@ void updateSensor1() {
 void updateSensor2() {
   static unsigned long timer;
   if (millis() > timer) {
-    // update the sensor for looking forward
+    sonar2();
   }
   timer = millis() + 250; // update every 0.25s can change
 }
@@ -212,7 +214,7 @@ void updateSensor2() {
 //   delay(250);
 // }
 
-void sonar()
+void sonar2()
 {
   for(int attempt = 0; attempt < 3; attempt++)
   {
@@ -237,6 +239,5 @@ void sonar()
     }
     Serial.print("Distance: ");
     Serial.println(ver_dis);
-    delay(250);
   }
 }
