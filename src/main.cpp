@@ -11,8 +11,7 @@
 
 const int trigPin = 7;  
 const int echoPin = 8; 
-float duration, ver_dis;
-//float distance[2] = {0.0, 0.0};
+float ver_dis;
 
 // because of platform IO
 void rotate_l();
@@ -26,7 +25,7 @@ void updaterotation_R2();
 void updaterotation_R1();
 void updateSensor1();
 void updateSensor2();
-void sonar2();
+void sonar();
 
 int RRotation = 0;
 int LRotation = 0;
@@ -37,6 +36,8 @@ void setup() {
   pinMode(MOTOR_A2, OUTPUT);
   pinMode(MOTOR_B1, OUTPUT);
   pinMode(MOTOR_B2, OUTPUT);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
   pinMode(ROT_R1, INPUT_PULLUP);
   pinMode(ROT_R2, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(ROT_R1), updaterotation_R1, CHANGE);
@@ -65,9 +66,17 @@ void loop() {
     }
   }
   */
-  //sonar2();
-  backwards(10);
-  delay(1000);
+  sonar();
+  if(ver_dis < 14)
+  {
+    stop_();
+    rotate_r();
+    forward(10);
+  }
+  else
+  {
+    forward(10);
+  }
   //backwards(10);
   //delay(1000);
 }
@@ -84,7 +93,7 @@ void forward(int distance) { // needs fix
   while (RRotation <= rotations && LRotation <= rotations) { // needs fix
     digitalWrite(MOTOR_A2, HIGH);
     digitalWrite(MOTOR_B2, HIGH);
-    analogWrite(MOTOR_A1, 70);
+    analogWrite(MOTOR_A1, 50);
     analogWrite(MOTOR_B1, 25);
   }
 }
@@ -108,7 +117,7 @@ void backwards(int distance) { // needs fix
   while (RRotation <= rotations && LRotation <= rotations) { // looks right
     digitalWrite(MOTOR_A2, LOW);
     digitalWrite(MOTOR_B2, LOW);
-    analogWrite(MOTOR_A1, 255);
+    analogWrite(MOTOR_A1, 222);
     analogWrite(MOTOR_B1, 255);
   }
 }
@@ -141,7 +150,7 @@ void rotate_r() { // still needs some testing for perfect 90 degree turn
   LRotation = 0;
   interrupts();
 
-  while (RRotation <= 17 && LRotation <= 17) {
+  while (RRotation <= 15 && LRotation <= 15) {
     analogWrite(MOTOR_A1, 25);
     digitalWrite(MOTOR_B2, LOW);
 
@@ -223,7 +232,7 @@ void updateSensor1() {
 void updateSensor2() {
   static unsigned long timer = 0;
   if (millis() - timer > 250) {
-    sonar2();
+    sonar();
   }
   timer = millis(); // update every 0.25s can change
 }
@@ -241,9 +250,11 @@ void updateSensor2() {
 //   Serial.println(distance);
 //   delay(250);
 // }
-/*
-void sonar2()
+
+void sonar()
 {
+  float distance[2] = {0.0, 0.0};
+  float duration;
   for(int attempt = 0; attempt < 3; attempt++)
   {
     for(int i = 0; i < 2; i++)
@@ -267,8 +278,7 @@ void sonar2()
     }
     Serial.print("Distance: ");
     Serial.println(ver_dis);
-    //delay(250);
+    delay(250);
   }
 }
-*/
 
