@@ -119,12 +119,19 @@ void backwards(int distance) { // needs fix
 
 void turn_r(int speed) { // don't need to change because we are not using turn only rotate
   stop_();
-  analogWrite(MOTOR_A2, 255);
-  analogWrite(MOTOR_B2, 255);
-  delay(10);
-  analogWrite(MOTOR_A2, speed);
-  analogWrite(MOTOR_B2, speed * 0.8);
-  delay(8000);
+
+  noInterrupts();
+  RRotation = 0;
+  LRotation = 0;
+  interrupts();
+
+  while (LRotation < 2 && RRotation < 1) {
+    digitalWrite(MOTOR_A2, HIGH);
+    digitalWrite(MOTOR_B2, HIGH);
+    analogWrite(MOTOR_A1, 50);
+    analogWrite(MOTOR_B1, 25);
+  }
+  stop_();
 }
 
 void turn_l() { // changed it to turn a very small amount jut for corrections
@@ -152,12 +159,19 @@ void rotate_r() { // still needs some testing for perfect 90 degree turn
   LRotation = 0;
   interrupts();
 
-  while (LRotation < 2 && RRotation < 1) {
+  while (RRotation <= 15 && LRotation <= 15) {
+    analogWrite(MOTOR_A1, 25);
+    digitalWrite(MOTOR_B2, LOW);
+
+    analogWrite(MOTOR_B1, 255);
     digitalWrite(MOTOR_A2, HIGH);
-    digitalWrite(MOTOR_B2, HIGH);
-    analogWrite(MOTOR_A1, 50);
-    analogWrite(MOTOR_B1, 25);
   }
+  analogWrite(MOTOR_A1, 255);
+  digitalWrite(MOTOR_B2, HIGH);
+
+  analogWrite(MOTOR_B1, 25);
+  digitalWrite(MOTOR_A2, LOW);
+  delay(10);
   stop_();
 }
 
@@ -219,10 +233,9 @@ void updaterotation_R2() // left rotation
 void updateSensor1() {
   static unsigned long timer;
   if (millis() > timer) {
-    
-    timer = millis() + 250; // update every 0.25s can change
+    // update the sensor for looking right
   }
-  
+  timer = millis() + 250; // update every 0.25s can change
 }
 
 void updateSensor2() {
