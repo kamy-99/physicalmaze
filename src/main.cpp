@@ -53,51 +53,30 @@ void loop() {
 
   update sensor 1 (looking right)
   update sensor 2 (looking forward)
-  if (there's a line) { priority #1
-    follow it
+  if (there's the finish) { priority #1
+    put down item
+    back off
+    send done signal
+    stop
   } else {
-    if (nothing on right (-> there's a path)) { priority #2
+    if (on the right >5cm (-> there's a path)) { priority #2
       rotate right
       go forward X cm  
     } else if (nothing forward) { priority # 3
       go forward
     } else if (wall in front && wall in right) {
       rotate left
+    } else {
+      go forward
     }
   }
   */
-
-  do
-  {
-    sonar();
-    rotate_l();
-  }
-  while(ver_dis > 13.00);
-  do
-  {
-    sonar();
-    rotate_r();
-  }
-  while (ver_dis < 13.00);
-  
-  // if(1 < ver_dis < 8)
-  // {
-  //   stop_();
-  //   delay(2000);
-  //   rotate_r();
-  //   turn_l(255);
-  // }
-  // else
-  // {
-  //   forward(10);
-  // }
-  //backwards(10);
-  //delay(1000);
+  updateSensor2();
 }
 
 void forward(int distance) { // needs fix
   stop_();
-  int rotations = distance / WheelC;
+  int rotations = WheelC * ((distance / WheelC) * 100);
 
   noInterrupts();
   RRotation = 0;
@@ -110,6 +89,7 @@ void forward(int distance) { // needs fix
     analogWrite(MOTOR_A1, 50);
     analogWrite(MOTOR_B1, 25);
   }
+  stop_();
 }
 
 void stop_() {
@@ -121,7 +101,7 @@ void stop_() {
 
 void backwards(int distance) { // needs fix
   stop_();
-  int rotations = distance / WheelC;
+  int rotations = WheelC * ((distance / WheelC) * 100);
 
   noInterrupts();
   RRotation = 0;
@@ -133,11 +113,8 @@ void backwards(int distance) { // needs fix
     digitalWrite(MOTOR_B2, LOW);
     analogWrite(MOTOR_A1, 222);
     analogWrite(MOTOR_B1, 255);
-    if(RRotation <= 10 && LRotation <= 10)
-    {
-      stop_();
-    }
   }
+  stop_();
 }
 
 void turn_r(int speed) { // don't need to change because we are not using turn only rotate
@@ -150,14 +127,21 @@ void turn_r(int speed) { // don't need to change because we are not using turn o
   delay(8000);
 }
 
-void turn_l(int speed) { // don't need to change because we are not using turn only rotate
+void turn_l() { // changed it to turn a very small amount jut for corrections
   stop_();
-  analogWrite(MOTOR_A2, 255);
-  analogWrite(MOTOR_B2, 255);
-  delay(10);
-  analogWrite(MOTOR_A2, speed*0.7);
-  analogWrite(MOTOR_B2, speed);
-  delay(4000);
+
+  noInterrupts();
+  RRotation = 0;
+  LRotation = 0;
+  interrupts();
+
+  while (LRotation < 1 && RRotation < 2) {
+    digitalWrite(MOTOR_A2, HIGH);
+    digitalWrite(MOTOR_B2, HIGH);
+    analogWrite(MOTOR_A1, 50);
+    analogWrite(MOTOR_B1, 25);
+  }
+  stop_();
 }
 
 void rotate_r() { // still needs some testing for perfect 90 degree turn
@@ -168,19 +152,12 @@ void rotate_r() { // still needs some testing for perfect 90 degree turn
   LRotation = 0;
   interrupts();
 
-  while (RRotation <= 15 && LRotation <= 15) {
-    analogWrite(MOTOR_A1, 25);
-    digitalWrite(MOTOR_B2, LOW);
-
-    analogWrite(MOTOR_B1, 255);
+  while (LRotation < 2 && RRotation < 1) {
     digitalWrite(MOTOR_A2, HIGH);
+    digitalWrite(MOTOR_B2, HIGH);
+    analogWrite(MOTOR_A1, 50);
+    analogWrite(MOTOR_B1, 25);
   }
-  analogWrite(MOTOR_A1, 255);
-  digitalWrite(MOTOR_B2, HIGH);
-
-  analogWrite(MOTOR_B1, 25);
-  digitalWrite(MOTOR_A2, LOW);
-  delay(10);
   stop_();
 }
 
@@ -242,39 +219,25 @@ void updaterotation_R2() // left rotation
 void updateSensor1() {
   static unsigned long timer;
   if (millis() > timer) {
-    // update the sensor for looking right
+    
+    timer = millis() + 250; // update every 0.25s can change
   }
-  timer = millis() + 250; // update every 0.25s can change
+  
 }
 
 void updateSensor2() {
   static unsigned long timer = 0;
-  if (millis() - timer > 250) {
+  if (millis() > timer) {
     sonar();
+    Serial.println("sonar update");
+    timer = millis() + 250; // update every 0.25s can change
   }
-  timer = millis(); // update every 0.25s can change
 }
-// void sonar()
-// {
-//   digitalWrite(trigPin, LOW);
-//   delayMicroseconds(2);
-//   digitalWrite(trigPin, HIGH);
-//   delayMicroseconds(10);
-//   digitalWrite(trigPin, LOW);
-
-//   duration = pulseIn(echoPin, HIGH);
-//   distance = (duration*.0343)/2;
-//   Serial.print("Distance: ");
-//   Serial.println(distance);
-//   delay(250);
-// }
 
 void sonar()
 {
   float distance[2] = {0.0, 0.0};
   float duration;
-  for(int attempt = 0; attempt < 3; attempt++)
-  {
     for(int i = 0; i < 2; i++)
     {
     digitalWrite(trigPin, LOW);
@@ -290,13 +253,7 @@ void sonar()
     {
       ver_dis = distance[1];
     }
-    else
-    {
-      attempt++;
-    }
     Serial.print("Distance: ");
     Serial.println(ver_dis);
-    delay(250);
-  }
 }
 
