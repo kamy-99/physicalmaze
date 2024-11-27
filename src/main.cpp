@@ -13,6 +13,10 @@ const int trigPin = 7;
 const int echoPin = 8; 
 float ver_dis;
 
+//const int trigPin2 = ;
+//const int echoPin = ;
+float ver_dis2;
+
 // because of platform IO
 void rotate_l();
 void rotate_r();
@@ -71,19 +75,20 @@ void loop() {
     }
   }
   */
+  updateSensor1();
   updateSensor2();
 }
 
-void forward(int distance) { // needs fix
+void forward(int distance) { // should be done
   stop_();
-  int rotations = WheelC * ((distance / WheelC) * 100);
+  int rotations = round(40 * ((distance / WheelC) * 100));
 
   noInterrupts();
   RRotation = 0;
   LRotation = 0;
   interrupts();
 
-  while (RRotation <= rotations && LRotation <= rotations) { // needs fix
+  while (RRotation <= rotations && LRotation <= rotations) {
     digitalWrite(MOTOR_A2, HIGH);
     digitalWrite(MOTOR_B2, HIGH);
     analogWrite(MOTOR_A1, 50);
@@ -99,16 +104,16 @@ void stop_() {
   analogWrite(MOTOR_B1, 0);
 }
 
-void backwards(int distance) { // needs fix
+void backwards(int distance) { // should be done
   stop_();
-  int rotations = WheelC * ((distance / WheelC) * 100);
+  int rotations = round(40 * ((distance / WheelC) * 100));
 
   noInterrupts();
   RRotation = 0;
   LRotation = 0;
   interrupts();
 
-  while (RRotation <= rotations && LRotation <= rotations) { // looks right
+  while (RRotation <= rotations && LRotation <= rotations) {
     digitalWrite(MOTOR_A2, LOW);
     digitalWrite(MOTOR_B2, LOW);
     analogWrite(MOTOR_A1, 222);
@@ -117,7 +122,7 @@ void backwards(int distance) { // needs fix
   stop_();
 }
 
-void turn_r(int speed) { // don't need to change because we are not using turn only rotate
+void turn_r(int speed) {
   stop_();
 
   noInterrupts();
@@ -151,7 +156,7 @@ void turn_l() { // changed it to turn a very small amount jut for corrections
   stop_();
 }
 
-void rotate_r() { // still needs some testing for perfect 90 degree turn
+void rotate_r() { // should be done
   stop_();
 
   noInterrupts();
@@ -175,7 +180,7 @@ void rotate_r() { // still needs some testing for perfect 90 degree turn
   stop_();
 }
 
-void rotate_l() { // still needs some testing for perfect 90 degree turn
+void rotate_l() { // should be done
   stop_();
 
   noInterrupts();
@@ -188,12 +193,12 @@ void rotate_l() { // still needs some testing for perfect 90 degree turn
     digitalWrite(MOTOR_B2, HIGH); // LEFT GOES BACK
 
     analogWrite(MOTOR_B1, 25);
-    digitalWrite(MOTOR_A2, LOW); // RIGHT GOES BACK
+    digitalWrite(MOTOR_A2, LOW);
   }
   analogWrite(MOTOR_A1, 25);
-  digitalWrite(MOTOR_B2, LOW); // LEFT GOES BACK
+  digitalWrite(MOTOR_B2, LOW);
   analogWrite(MOTOR_B1, 255);
-  digitalWrite(MOTOR_A2, HIGH); // RIGHT GOES BACK
+  digitalWrite(MOTOR_A2, HIGH);
   delay(10);
   stop_();
 }
@@ -230,24 +235,26 @@ void updaterotation_R2() // left rotation
   interrupts();
 }
 
-void updateSensor1() {
+void updateSensor1() { // right sonar (this gets n1 because it's the bigger priority)
   static unsigned long timer;
   if (millis() > timer) {
-    // update the sensor for looking right
+    sonar1();
+    Serial.println("Sonar1 update");
+    timer = millis() + 250; // update every 0.25s can change
   }
-  timer = millis() + 250; // update every 0.25s can change
+  
 }
 
-void updateSensor2() {
+void updateSensor2() { // forward sonar
   static unsigned long timer = 0;
   if (millis() > timer) {
-    sonar();
-    Serial.println("sonar update");
+    sonar2();
+    Serial.println("Sonar2 update");
     timer = millis() + 250; // update every 0.25s can change
   }
 }
 
-void sonar()
+void sonar2() // forward sonar
 {
   float distance[2] = {0.0, 0.0};
   float duration;
@@ -270,3 +277,25 @@ void sonar()
     Serial.println(ver_dis);
 }
 
+void sonar1() // right sonar
+{
+  float distance[2] = {0.0, 0.0};
+  float duration;
+    for(int i = 0; i < 2; i++)
+    {
+    digitalWrite(trigPin2, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin2, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin2, LOW);
+
+    duration = pulseIn(echoPin2, HIGH);
+    distance[i] = (duration*.0343)/2;
+    }
+    if(distance[0] > 0 && distance[1] > 0 && abs(distance[0] - distance[1]) <= 5)
+    {
+      ver_dis2 = distance[1];
+    }
+    Serial.print("Distance: ");
+    Serial.println(ver_dis2);
+}
