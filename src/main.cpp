@@ -66,17 +66,31 @@ void loop() {
     }
   }
   */
-  sonar();
-  if(ver_dis < 14)
+
+  do
   {
-    stop_();
+    sonar();
+    rotate_l();
+  }
+  while(ver_dis > 13.00);
+  do
+  {
+    sonar();
     rotate_r();
-    forward(10);
   }
-  else
-  {
-    forward(10);
-  }
+  while (ver_dis < 13.00);
+  
+  // if(1 < ver_dis < 8)
+  // {
+  //   stop_();
+  //   delay(2000);
+  //   rotate_r();
+  //   turn_l(255);
+  // }
+  // else
+  // {
+  //   forward(10);
+  // }
   //backwards(10);
   //delay(1000);
 }
@@ -119,6 +133,10 @@ void backwards(int distance) { // needs fix
     digitalWrite(MOTOR_B2, LOW);
     analogWrite(MOTOR_A1, 222);
     analogWrite(MOTOR_B1, 255);
+    if(RRotation <= 10 && LRotation <= 10)
+    {
+      stop_();
+    }
   }
 }
 
