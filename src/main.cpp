@@ -8,13 +8,15 @@
 #define ROT_R2 3 // L
 #define DVALUE 10 // debounce value in ms
 #define PIVALUE 3.141592653589793238462643383279502884197 // 39 digits or so
+#define GRIPPER 10
+
 
 const int trigPin = 7;  
 const int echoPin = 8; 
 float ver_dis;
 
-const int trigPin2 = 12;
-const int echoPin2 = 13;
+const int trigPin2 = 5;
+const int echoPin2 = 6;
 float ver_dis2;
 
 // because of platform IO
@@ -31,6 +33,7 @@ void updateSensor1();
 void updateSensor2();
 void sonar1();
 void sonar2();
+void gripper(int angle);
 
 int RRotation = 0;
 int LRotation = 0;
@@ -41,6 +44,7 @@ void setup() {
   pinMode(MOTOR_A2, OUTPUT);
   pinMode(MOTOR_B1, OUTPUT);
   pinMode(MOTOR_B2, OUTPUT);
+  pinMode(GRIPPER, OUTPUT);
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
   pinMode(trigPin2, OUTPUT);
@@ -78,8 +82,9 @@ void loop() {
     }
   }
   */
-  updateSensor1();
-  updateSensor2();
+  // updateSensor1();
+  // updateSensor2();
+  gripper(2000);
 }
 
 // updates
@@ -105,7 +110,7 @@ void updateSensor2() { // forward sonar
 void updateKeepDistance() { // this will try to keep the distance from the wall consistent 
   static unsigned long timer;
   if (millis() > timer) {
-    keepDistance();
+    // keepDistance();
     Serial.println("keepDistance update");
     timer = millis() + 250; // update every 0.25s can change could be
   }
@@ -317,4 +322,17 @@ void sonar1() // right sonar
     }
     Serial.print("Distance: ");
     Serial.println(ver_dis2);
+}
+
+void gripper(int angle) {
+  // Map the angle to the pulse width (1000 to 2000 microseconds)
+  int pulseWidth = map(angle, 0, 180, 1000, 2000);
+  
+  // Send the PWM signal
+  for (int i = 0; i < 50; i++) { // Repeat to maintain the pulse for ~1 second
+    digitalWrite(GRIPPER, HIGH); // Set the pin high
+    delayMicroseconds(pulseWidth); // Wait for the pulse width duration
+    digitalWrite(GRIPPER, LOW); // Set the pin low
+    delayMicroseconds(20000 - pulseWidth); // Wait for the rest of the 20ms period
+  }
 }
