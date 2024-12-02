@@ -23,13 +23,14 @@ void rotate_r();
 void forward(int distance);
 void backwards(int distance);
 void stop_();
-void turn_l(int speed);
-void turn_r(int speed);
+void turn_l();
+void turn_r();
 void updaterotation_R2();
 void updaterotation_R1();
 void updateSensor1();
 void updateSensor2();
-void sonar();
+void sonar1();
+void sonar2();
 
 int RRotation = 0;
 int LRotation = 0;
@@ -42,6 +43,8 @@ void setup() {
   pinMode(MOTOR_B2, OUTPUT);
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
+  pinMode(trigPin2, OUTPUT);
+  pinMode(echoPin2, INPUT);
   pinMode(ROT_R1, INPUT_PULLUP);
   pinMode(ROT_R2, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(ROT_R1), updaterotation_R1, CHANGE);
@@ -122,7 +125,7 @@ void backwards(int distance) { // should be done
   stop_();
 }
 
-void turn_r(int speed) {
+void turn_r() {
   stop_();
 
   noInterrupts();
