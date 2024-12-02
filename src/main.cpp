@@ -13,8 +13,8 @@ const int trigPin = 7;
 const int echoPin = 8; 
 float ver_dis;
 
-//const int trigPin2 = ;
-//const int echoPin = ;
+const int trigPin2 = 12;
+const int echoPin2 = 13;
 float ver_dis2;
 
 // because of platform IO
@@ -82,6 +82,68 @@ void loop() {
   updateSensor2();
 }
 
+// updates
+void updateSensor1() { // right sonar (this gets n1 because it's the bigger priority)
+  static unsigned long timer;
+  if (millis() > timer) {
+    sonar1();
+    Serial.println("Sonar1 update");
+    timer = millis() + 250; // update every 0.25s can change
+  }
+  
+}
+
+void updateSensor2() { // forward sonar
+  static unsigned long timer = 0;
+  if (millis() > timer) {
+    sonar2();
+    Serial.println("Sonar2 update");
+    timer = millis() + 250; // update every 0.25s can change
+  }
+}
+
+void updateKeepDistance() { // this will try to keep the distance from the wall consistent 
+  static unsigned long timer;
+  if (millis() > timer) {
+    keepDistance();
+    Serial.println("keepDistance update");
+    timer = millis() + 250; // update every 0.25s can change could be
+  }
+}
+
+void updaterotation_R1() // right rotation
+{
+  static unsigned long timer;
+  static bool lastState;
+  noInterrupts();
+  if (millis() > timer) {
+    bool state = digitalRead(ROT_R1);
+    if (lastState != state) {
+      RRotation++;
+      lastState = state;
+    }
+  timer = millis() + DVALUE;
+  }
+  interrupts();
+}
+
+void updaterotation_R2() // left rotation
+{
+  static unsigned long timer;
+  static bool lastState;
+  noInterrupts();
+  if (millis() > timer) {
+    bool state = digitalRead(ROT_R2);
+    if (lastState != state) {
+      LRotation++;
+      lastState = state;
+    }
+  timer = millis() + DVALUE;
+  }
+  interrupts();
+}
+
+// movement
 void forward(int distance) { // should be done
   stop_();
   int rotations = round(40 * ((distance / WheelC) * 100));
@@ -206,57 +268,11 @@ void rotate_l() { // should be done
   stop_();
 }
 
-void updaterotation_R1() // right rotation
-{
-  static unsigned long timer;
-  static bool lastState;
-  noInterrupts();
-  if (millis() > timer) {
-    bool state = digitalRead(ROT_R1);
-    if (lastState != state) {
-      RRotation++;
-      lastState = state;
-    }
-  timer = millis() + DVALUE;
-  }
-  interrupts();
+void keepDistance() {
+
 }
 
-void updaterotation_R2() // left rotation
-{
-  static unsigned long timer;
-  static bool lastState;
-  noInterrupts();
-  if (millis() > timer) {
-    bool state = digitalRead(ROT_R2);
-    if (lastState != state) {
-      LRotation++;
-      lastState = state;
-    }
-  timer = millis() + DVALUE;
-  }
-  interrupts();
-}
-
-void updateSensor1() { // right sonar (this gets n1 because it's the bigger priority)
-  static unsigned long timer;
-  if (millis() > timer) {
-    sonar1();
-    Serial.println("Sonar1 update");
-    timer = millis() + 250; // update every 0.25s can change
-  }
-  
-}
-
-void updateSensor2() { // forward sonar
-  static unsigned long timer = 0;
-  if (millis() > timer) {
-    sonar2();
-    Serial.println("Sonar2 update");
-    timer = millis() + 250; // update every 0.25s can change
-  }
-}
-
+// sonar
 void sonar2() // forward sonar
 {
   float distance[2] = {0.0, 0.0};
