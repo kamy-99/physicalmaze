@@ -38,6 +38,9 @@ void gripper(int angle);
 int RRotation = 0;
 int LRotation = 0;
 
+int c1 = 0;
+int c2 = 0;
+
 void setup() {
   Serial.begin(9600);
   pinMode(MOTOR_A1, OUTPUT);
@@ -135,6 +138,9 @@ void updaterotation_R1() // right rotation
     if (lastState != state) {
       RRotation++;
       lastState = state;
+      c1 = 0;
+    } else {
+      c1 += 1;
     }
   timer = millis() + DVALUE;
   }
@@ -151,6 +157,9 @@ void updaterotation_R2() // left rotation
     if (lastState != state) {
       LRotation++;
       lastState = state;
+      c2 = 0;
+    } else {
+      c2 += 1;
     }
   timer = millis() + DVALUE;
   }
@@ -296,6 +305,14 @@ void keepDistance() {
     turn_l();
   }
 
+}
+
+void failSafe() {
+  if (c1 > 10 && c2 > 10) {
+    backwards(10);
+    c1 = 0;
+    c2 = 0;
+  }
 }
 
 // sonar
