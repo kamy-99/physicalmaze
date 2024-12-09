@@ -135,9 +135,9 @@ void updaterotation_R1() // right rotation
     if (lastState != state) {
       RRotation++;
       lastState = state;
-    c2 = 0;
+      c1 = 0;
     } else {
-      c2 += 1;
+      c1 += 1;
     }
   timer = millis() + DVALUE;
   }
@@ -154,7 +154,7 @@ void updaterotation_R2() // left rotation
     if (lastState != state) {
       LRotation++;
       lastState = state;
-    c2 = 0;
+      c2 = 0;
     } else {
       c2 += 1;
     }
