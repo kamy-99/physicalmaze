@@ -135,7 +135,11 @@ void updaterotation_R1() // right rotation
     if (lastState != state) {
       RRotation++;
       lastState = state;
+<<<<<<< HEAD
       c1 = 0;
+=======
+    c1 = 0;
+>>>>>>> 98cf8790957d3dd2f02d3ddd317c8d295dcad89f
     } else {
       c1 += 1;
     }
