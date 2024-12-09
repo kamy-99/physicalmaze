@@ -34,7 +34,10 @@ void updateSensor2();
 void sonar1();
 void sonar2();
 void gripper(int angle);
-void gamelogic();
+void gameLogic();
+void failSafe();
+void updateKeepDistance();
+void keepDistance();
 
 int RRotation = 0;
 int LRotation = 0;
@@ -89,11 +92,10 @@ void loop() {
   */
   // updateSensor1();
   // updateSensor2();
-  // gripper(130);
-  // delay(1000);
- //gamelogic();
- sonar1();
- sonar2();
+  // updateGameLogic();
+  // failSafe();
+  turn_r();
+  delay(3000);
 }
 
 // updates
@@ -119,8 +121,17 @@ void updateSensor2() { // forward sonar
 void updateKeepDistance() { // this will try to keep the distance from the wall consistent 
   static unsigned long timer;
   if (millis() > timer) {
-    // keepDistance();
+    keepDistance();
     Serial.println("keepDistance update");
+    timer = millis() + 250; // update every 0.25s can change could be
+  }
+}
+
+void updateGameLogic() { // update gamelogic
+  static unsigned long timer;
+  if (millis() > timer) {
+    gameLogic();
+    Serial.println("gameLogic update");
     timer = millis() + 250; // update every 0.25s can change could be
   }
 }
@@ -135,13 +146,7 @@ void updaterotation_R1() // right rotation
     if (lastState != state) {
       RRotation++;
       lastState = state;
-<<<<<<< HEAD
       c1 = 0;
-=======
-    c1 = 0;
->>>>>>> 98cf8790957d3dd2f02d3ddd317c8d295dcad89f
-    } else {
-      c1 += 1;
     }
   timer = millis() + DVALUE;
   }
@@ -159,8 +164,6 @@ void updaterotation_R2() // left rotation
       LRotation++;
       lastState = state;
       c2 = 0;
-    } else {
-      c2 += 1;
     }
   timer = millis() + DVALUE;
   }
@@ -219,11 +222,21 @@ void turn_r() {
   LRotation = 0;
   interrupts();
 
-  while (LRotation < 2 && RRotation < 1) {
-    digitalWrite(MOTOR_A2, HIGH);
-    digitalWrite(MOTOR_B2, HIGH);
-    analogWrite(MOTOR_A1, 50);
-    analogWrite(MOTOR_B1, 25);
+  while (LRotation < 40 && RRotation < 20) { // A is left B is right
+  if (LRotation < 40) {
+      digitalWrite(MOTOR_A2, HIGH);
+      analogWrite(MOTOR_A1, 10);
+    } else {
+      digitalWrite(MOTOR_A2, LOW);
+      analogWrite(MOTOR_A1, 0);
+    }    
+    if (RRotation < 20) {
+      digitalWrite(MOTOR_B2, HIGH);
+      analogWrite(MOTOR_B1, 100);
+    } else {
+      digitalWrite(MOTOR_B2, LOW);
+      analogWrite(MOTOR_B1, 0);
+    }
   }
   stop_();
 }
@@ -236,11 +249,21 @@ void turn_l() { // changed it to turn a very small amount jut for corrections
   LRotation = 0;
   interrupts();
 
-  while (LRotation < 1 && RRotation < 2) {
-    digitalWrite(MOTOR_A2, HIGH);
-    digitalWrite(MOTOR_B2, HIGH);
-    analogWrite(MOTOR_A1, 50);
-    analogWrite(MOTOR_B1, 25);
+  while (LRotation < 20 && RRotation < 40) { // A is left B is right
+  if (LRotation < 20) {
+      digitalWrite(MOTOR_A2, HIGH);
+      analogWrite(MOTOR_A1, 100);
+    } else {
+      digitalWrite(MOTOR_A2, LOW);
+      analogWrite(MOTOR_A1, 0);
+    }    
+    if (RRotation < 40) {
+      digitalWrite(MOTOR_B2, HIGH);
+      analogWrite(MOTOR_B1, 10);
+    } else {
+      digitalWrite(MOTOR_B2, LOW);
+      analogWrite(MOTOR_B1, 0);
+    }
   }
   stop_();
 }
@@ -293,19 +316,16 @@ void rotate_l() { // should be done
 }
 
 void keepDistance() {
-  if(right_dis > 3 && right_dis < 8)
-  {
-    gamelogic();
-  }
-  else if(right_dis > 8 && right_dis < 15)
-  {
+  const float errorRange = 1.0;
+  const float targetDistance = 5.0;
+
+  if (right_dis >= targetDistance - errorRange && right_dis <= targetDistance + errorRange) {
+    forward(5);    
+  } else if (right_dis >= targetDistance - errorRange) {
+    turn_l();
+  }  else if (right_dis >= targetDistance + errorRange) {
     turn_r();
   }
-  else if(right_dis <= 3)
-  {
-    turn_l();
-  }
-
 }
 
 void failSafe() {
@@ -377,23 +397,14 @@ void gripper(int angle) {
   }
 }
 
-void gamelogic()
-{
-  sonar1();
-  sonar2();
-  keepDistance();
-  if(right_dis > 15)
-  {
+void gameLogic() {
+  if (right_dis > 15) {
+    forward(20);
     rotate_r();
-    forward(10);
-  }
-  while(forward_dis > 15)
-  {
-    forward(10);
-  }
-  
-  if(right_dis > 3 && right_dis < 8 && forward_dis < 15)
-  {
-    rotate_l();
+    forward(20);
+  } else if (forward_dis > 15) {
+    updateKeepDistance();
+  } else {
+    turn_l();
   }
 }
