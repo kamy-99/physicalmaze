@@ -13,11 +13,11 @@
 
 const int trigPin = 7;  
 const int echoPin = 8; 
-float ver_dis;
+float forward_dis;
 
 const int trigPin2 = 5;
 const int echoPin2 = 6;
-float ver_dis2;
+float right_dis;
 
 // because of platform IO
 void rotate_l();
@@ -84,7 +84,16 @@ void loop() {
   */
   // updateSensor1();
   // updateSensor2();
-  gripper(2000);
+  // gripper(130);
+  // delay(1000);
+  gripper(130);
+  // gripper(-10);
+  // forward(10);
+  // delay(1000);
+  // rotate_r();
+  // backwards(10);
+  // delay(1000);
+  // delay(1000);
 }
 
 // updates
@@ -274,11 +283,23 @@ void rotate_l() { // should be done
 }
 
 void keepDistance() {
+  if(right_dis > 3 && right_dis < 8)
+  {
+    gamelogic();
+  }
+  else if(right_dis > 8 && right_dis < 15)
+  {
+    turn_r();
+  }
+  else if(right_dis <= 3)
+  {
+    turn_l();
+  }
 
 }
 
 // sonar
-void sonar2() // forward sonar
+void sonar1() // forward sonar
 {
   float distance[2] = {0.0, 0.0};
   float duration;
@@ -295,13 +316,13 @@ void sonar2() // forward sonar
     }
     if(distance[0] > 0 && distance[1] > 0 && abs(distance[0] - distance[1]) <= 5)
     {
-      ver_dis = distance[1];
+      forward_dis = distance[1];
     }
-    Serial.print("Distance: ");
-    Serial.println(ver_dis);
+    Serial.print("forward Distance: ");
+    Serial.println(forward_dis);
 }
 
-void sonar1() // right sonar
+void sonar2() // right sonar
 {
   float distance[2] = {0.0, 0.0};
   float duration;
@@ -318,10 +339,10 @@ void sonar1() // right sonar
     }
     if(distance[0] > 0 && distance[1] > 0 && abs(distance[0] - distance[1]) <= 5)
     {
-      ver_dis2 = distance[1];
+      right_dis = distance[1];
     }
-    Serial.print("Distance: ");
-    Serial.println(ver_dis2);
+    Serial.print("right Distance: ");
+    Serial.println(right_dis);
 }
 
 void gripper(int angle) {
@@ -334,5 +355,18 @@ void gripper(int angle) {
     delayMicroseconds(pulseWidth); // Wait for the pulse width duration
     digitalWrite(GRIPPER, LOW); // Set the pin low
     delayMicroseconds(20000 - pulseWidth); // Wait for the rest of the 20ms period
+  }
+}
+
+void gamelogic()
+{
+  if(right_dis > 15)
+  {
+    rotate_r();
+    forward(10);
+  }
+  while(forward_dis > 15)
+  {
+    forward(10);
   }
 }
