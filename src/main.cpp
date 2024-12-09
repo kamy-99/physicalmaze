@@ -34,9 +34,14 @@ void updateSensor2();
 void sonar1();
 void sonar2();
 void gripper(int angle);
+void gamelogic();
 
 int RRotation = 0;
 int LRotation = 0;
+
+int c1 = 0;
+int c2 = 0;
+
 
 void setup() {
   Serial.begin(9600);
@@ -86,14 +91,9 @@ void loop() {
   // updateSensor2();
   // gripper(130);
   // delay(1000);
-  gripper(130);
-  // gripper(-10);
-  // forward(10);
-  // delay(1000);
-  // rotate_r();
-  // backwards(10);
-  // delay(1000);
-  // delay(1000);
+ //gamelogic();
+ sonar1();
+ sonar2();
 }
 
 // updates
@@ -135,6 +135,9 @@ void updaterotation_R1() // right rotation
     if (lastState != state) {
       RRotation++;
       lastState = state;
+    c2 = 0;
+    } else {
+      c2 += 1;
     }
   timer = millis() + DVALUE;
   }
@@ -298,6 +301,15 @@ void keepDistance() {
 
 }
 
+void failSafe() {
+  if (c1 > 10 && c2 > 10) {
+    backwards(10);
+    c1 = 0;
+    c2 = 0;
+  }
+}
+
+
 // sonar
 void sonar1() // forward sonar
 {
@@ -360,6 +372,9 @@ void gripper(int angle) {
 
 void gamelogic()
 {
+  sonar1();
+  sonar2();
+  keepDistance();
   if(right_dis > 15)
   {
     rotate_r();
@@ -368,5 +383,10 @@ void gamelogic()
   while(forward_dis > 15)
   {
     forward(10);
+  }
+  
+  if(right_dis > 3 && right_dis < 8 && forward_dis < 15)
+  {
+    rotate_l();
   }
 }
