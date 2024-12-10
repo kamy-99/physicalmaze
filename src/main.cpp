@@ -90,12 +90,12 @@ void loop() {
     }
   }
   */
-  // updateSensor1();
-  // updateSensor2();
+  gameLogic();
+  //backwards(10);
   // updateGameLogic();
   // failSafe();
-  turn_r();
-  delay(3000);
+  // turn_r();
+  // delay(3000);
 }
 
 // updates
@@ -171,21 +171,22 @@ void updaterotation_R2() // left rotation
 }
 
 // movement
-void forward(int distance) { // should be done
+void forward(int distance) {
   stop_();
-  int rotations = round(40 * ((distance / WheelC) * 100));
-
-  noInterrupts();
+  int rotations = round((distance / WheelC) * 40);
+  
+  noInterrupts(); // Reset rotation counters
   RRotation = 0;
   LRotation = 0;
   interrupts();
 
   while (RRotation <= rotations && LRotation <= rotations) {
-    digitalWrite(MOTOR_A2, HIGH);
-    digitalWrite(MOTOR_B2, HIGH);
-    analogWrite(MOTOR_A1, 50);
-    analogWrite(MOTOR_B1, 25);
+    digitalWrite(MOTOR_A2, HIGH); // Set left motor forward
+    digitalWrite(MOTOR_B2, HIGH); // Set right motor forward
+    analogWrite(MOTOR_A1, 50);    // Speed for left motor
+    analogWrite(MOTOR_B1, 50);    // Speed for right motor
   }
+
   stop_();
 }
 
@@ -198,7 +199,7 @@ void stop_() {
 
 void backwards(int distance) { // should be done
   stop_();
-  int rotations = round(40 * ((distance / WheelC) * 100));
+  int rotations = round((distance / WheelC) * 40);
 
   noInterrupts();
   RRotation = 0;
@@ -316,7 +317,7 @@ void rotate_l() { // should be done
 }
 
 void keepDistance() {
-  const float errorRange = 1.0;
+  const float errorRange = 3.0;
   const float targetDistance = 5.0;
 
   if (right_dis >= targetDistance - errorRange && right_dis <= targetDistance + errorRange) {
@@ -329,10 +330,19 @@ void keepDistance() {
 }
 
 void failSafe() {
-  if (c1 > 10 && c2 > 10) {
-    backwards(10);
-    c1 = 0;
-    c2 = 0;
+  static unsigned long lastRotationTime = millis(); // Record the last time rotations were updated
+  static int lastRRotation = 0; // Track last rotation count for the right wheel
+  static int lastLRotation = 0; // Track last rotation count for the left wheel
+
+  // Check if rotations have changed
+  if (RRotation != lastRRotation || LRotation != lastLRotation) {
+    lastRotationTime = millis(); // Update the time if rotations changed
+    lastRRotation = RRotation;   // Update the last known rotations
+    lastLRotation = LRotation;
+  } else if (millis() - lastRotationTime > 2000) { // If no change for 2 seconds
+    Serial.println("FailSafe Triggered: No movement detected!");
+    backwards(10); // Move backward 10 cm as a fail-safe response
+    lastRotationTime = millis(); // Reset the timer after moving backward
   }
 }
 
@@ -398,13 +408,51 @@ void gripper(int angle) {
 }
 
 void gameLogic() {
-  if (right_dis > 15) {
-    forward(20);
+  updateSensor1();
+  updateSensor2();
+  failSafe();
+  if(right_dis > 16)
+  {
+    failSafe();
     rotate_r();
-    forward(20);
-  } else if (forward_dis > 15) {
-    updateKeepDistance();
-  } else {
-    turn_l();
+    forward(50);
+    updateSensor1();
+    updateSensor2();
+    if(forward_dis > 16)
+    {
+      failSafe();
+      forward(20);
+      updateSensor1();
+      updateSensor2();
+    }
+  }
+  else if(forward_dis > 16)
+  {
+    failSafe();
+    forward(10);
+    updateSensor1();
+    updateSensor2();
+  }
+  else if(forward_dis < 16 && right_dis < 16)
+  {
+    failSafe();
+    rotate_l();
+    updateSensor1();
+    updateSensor2();
+    if(forward_dis > 16)
+    {
+      failSafe();
+      forward(10);
+      updateSensor1();
+      updateSensor2();
+    }
+  }
+
+  if(forward_dis < 10)
+  {
+    failSafe();
+    backwards(10);
+    updateSensor1();
+    updateSensor2();
   }
 }
