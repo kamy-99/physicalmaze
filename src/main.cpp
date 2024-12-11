@@ -90,6 +90,8 @@ void loop() {
     }
   }
   */
+ //forward(20);
+  //gameLogic();
   gameLogic();
   //backwards(10);
   // updateGameLogic();
@@ -185,6 +187,7 @@ void forward(int distance) {
     digitalWrite(MOTOR_B2, HIGH); // Set right motor forward
     analogWrite(MOTOR_A1, 50);    // Speed for left motor
     analogWrite(MOTOR_B1, 50);    // Speed for right motor
+    failSafe();
   }
 
   stop_();
@@ -209,7 +212,7 @@ void backwards(int distance) { // should be done
   while (RRotation <= rotations && LRotation <= rotations) {
     digitalWrite(MOTOR_A2, LOW);
     digitalWrite(MOTOR_B2, LOW);
-    analogWrite(MOTOR_A1, 222);
+    analogWrite(MOTOR_A1, 255);
     analogWrite(MOTOR_B1, 255);
   }
   stop_();
@@ -233,11 +236,12 @@ void turn_r() {
     }    
     if (RRotation < 20) {
       digitalWrite(MOTOR_B2, HIGH);
-      analogWrite(MOTOR_B1, 100);
+      analogWrite(MOTOR_B1, 150);
     } else {
       digitalWrite(MOTOR_B2, LOW);
       analogWrite(MOTOR_B1, 0);
     }
+    failSafe();
   }
   stop_();
 }
@@ -277,12 +281,13 @@ void rotate_r() { // should be done
   LRotation = 0;
   interrupts();
 
-  while (RRotation <= 15 && LRotation <= 15) {
+  while (RRotation <= 13 && LRotation <= 13) {
     analogWrite(MOTOR_A1, 25);
     digitalWrite(MOTOR_B2, LOW);
 
     analogWrite(MOTOR_B1, 255);
     digitalWrite(MOTOR_A2, HIGH);
+    failSafe();
   }
   analogWrite(MOTOR_A1, 255);
   digitalWrite(MOTOR_B2, HIGH);
@@ -301,12 +306,13 @@ void rotate_l() { // should be done
   LRotation = 0;
   interrupts();
 
-  while (RRotation <= 15 && LRotation <= 15) {
+  while (RRotation <= 20 && LRotation <= 20) {
     analogWrite(MOTOR_A1, 255);
     digitalWrite(MOTOR_B2, HIGH); // LEFT GOES BACK
 
     analogWrite(MOTOR_B1, 25);
     digitalWrite(MOTOR_A2, LOW);
+    failSafe();
   }
   analogWrite(MOTOR_A1, 25);
   digitalWrite(MOTOR_B2, LOW);
@@ -339,9 +345,9 @@ void failSafe() {
     lastRotationTime = millis(); // Update the time if rotations changed
     lastRRotation = RRotation;   // Update the last known rotations
     lastLRotation = LRotation;
-  } else if (millis() - lastRotationTime > 2000) { // If no change for 2 seconds
+  } else if (millis() - lastRotationTime > 1000) { // If no change for 2 seconds
     Serial.println("FailSafe Triggered: No movement detected!");
-    backwards(10); // Move backward 10 cm as a fail-safe response
+    backwards(25); // Move backward as a fail-safe response
     lastRotationTime = millis(); // Reset the timer after moving backward
   }
 }
@@ -410,48 +416,46 @@ void gripper(int angle) {
 void gameLogic() {
   updateSensor1();
   updateSensor2();
-  failSafe();
-  if(right_dis > 16)
+  if(right_dis > 20)
   {
-    failSafe();
-    rotate_r();
-    forward(50);
+    Serial.println("rotate right and forward");
+    turn_r();
     updateSensor1();
     updateSensor2();
-    if(forward_dis > 16)
+    if(forward_dis > 15)
     {
-      failSafe();
-      forward(20);
+      Serial.println("forward after right");
+      forward(15);
       updateSensor1();
       updateSensor2();
     }
   }
-  else if(forward_dis > 16)
+  else if(forward_dis > 15)
   {
-    failSafe();
-    forward(10);
+    Serial.println("forward");
+    forward(15);
     updateSensor1();
     updateSensor2();
   }
-  else if(forward_dis < 16 && right_dis < 16)
+  else if(forward_dis < 15 && right_dis < 15)
   {
-    failSafe();
+    Serial.println("rotate LEFT");
     rotate_l();
     updateSensor1();
     updateSensor2();
-    if(forward_dis > 16)
+    if(forward_dis > 15)
     {
-      failSafe();
-      forward(10);
+      Serial.print("forward");
+      forward(15);
       updateSensor1();
       updateSensor2();
     }
   }
 
-  if(forward_dis < 10)
+  if(forward_dis < 15)
   {
-    failSafe();
-    backwards(10);
+    Serial.print("back");
+    backwards(15);
     updateSensor1();
     updateSensor2();
   }
