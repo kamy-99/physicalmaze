@@ -19,6 +19,16 @@ const int trigPin2 = 5;
 const int echoPin2 = 6;
 float right_dis;
 
+int steeringError = 0;
+float sonarWeights[] = {-5, -4, -3, 1, 1, 3, 4, 5};  // A0 has weight -3, A7 has weight +3
+// PID variables
+float Kp = 6.0;   // Increase proportional constant for quicker response
+float Ki = 0.7;   // Small integral constant to reduce drift over time
+float Kd = 1.1;   // Moderate derivative constant to dampen oscillations
+
+float prevError = 0;    // Previous error value (for derivative term)
+float integral = 0;     // Accumulated error (for integral term)
+
 // because of platform IO
 void rotate_l();
 void rotate_r();
@@ -38,6 +48,9 @@ void gameLogic();
 void failSafe();
 void updateKeepDistance();
 void keepDistance();
+int calculateRotationCount(int degrees);
+void preciseRotate_r(int degrees);
+void logictest();
 
 int RRotation = 0;
 int LRotation = 0;
@@ -92,7 +105,9 @@ void loop() {
   */
  //forward(20);
   //gameLogic();
-  gameLogic();
+  logictest();
+  // preciseRotate_r(90);
+  // delay(2000);
   //backwards(10);
   // updateGameLogic();
   // failSafe();
@@ -185,8 +200,8 @@ void forward(int distance) {
   while (RRotation <= rotations && LRotation <= rotations) {
     digitalWrite(MOTOR_A2, HIGH); // Set left motor forward
     digitalWrite(MOTOR_B2, HIGH); // Set right motor forward
-    analogWrite(MOTOR_A1, 50);    // Speed for left motor
-    analogWrite(MOTOR_B1, 50);    // Speed for right motor
+    analogWrite(MOTOR_A1, 0);    // Speed for left motor
+    analogWrite(MOTOR_B1, 0);    // Speed for right motor
     failSafe();
   }
 
@@ -236,7 +251,7 @@ void turn_r() {
     }    
     if (RRotation < 20) {
       digitalWrite(MOTOR_B2, HIGH);
-      analogWrite(MOTOR_B1, 150);
+      analogWrite(MOTOR_B1, 180);
     } else {
       digitalWrite(MOTOR_B2, LOW);
       analogWrite(MOTOR_B1, 0);
@@ -306,7 +321,7 @@ void rotate_l() { // should be done
   LRotation = 0;
   interrupts();
 
-  while (RRotation <= 20 && LRotation <= 20) {
+  while (RRotation <= 15 && LRotation <= 15) {
     analogWrite(MOTOR_A1, 255);
     digitalWrite(MOTOR_B2, HIGH); // LEFT GOES BACK
 
@@ -323,8 +338,8 @@ void rotate_l() { // should be done
 }
 
 void keepDistance() {
-  const float errorRange = 3.0;
-  const float targetDistance = 5.0;
+  const float errorRange = 5.0;
+  const float targetDistance = 10.0;
 
   if (right_dis >= targetDistance - errorRange && right_dis <= targetDistance + errorRange) {
     forward(5);    
@@ -347,7 +362,7 @@ void failSafe() {
     lastLRotation = LRotation;
   } else if (millis() - lastRotationTime > 1000) { // If no change for 2 seconds
     Serial.println("FailSafe Triggered: No movement detected!");
-    backwards(25); // Move backward as a fail-safe response
+    backwards(20); // Move backward as a fail-safe response
     lastRotationTime = millis(); // Reset the timer after moving backward
   }
 }
@@ -440,9 +455,14 @@ void gameLogic() {
   else if(forward_dis < 15 && right_dis < 15)
   {
     Serial.println("rotate LEFT");
-    rotate_l();
     updateSensor1();
     updateSensor2();
+    if(forward_dis < 13 && right_dis < 13)
+    {
+      backwards(20);
+      updateSensor1();
+      updateSensor2();
+    }
     if(forward_dis > 15)
     {
       Serial.print("forward");
@@ -459,4 +479,180 @@ void gameLogic() {
     updateSensor1();
     updateSensor2();
   }
+}
+
+
+void logictest()
+{
+  updateSensor1();
+  updateSensor2();
+  while(forward_dis > 15)
+  {
+    updateSensor1();
+    updateSensor2();
+    if(right_dis >  20)
+    {
+      turn_r();
+      updateSensor1();
+      updateSensor2();
+      if(forward_dis > 20)
+      {
+        forward(20);
+        updateSensor1();
+        updateSensor2();
+      }
+    }
+    forward(15);
+  }
+  if(right_dis > 20)
+  {
+    turn_r();
+    updateSensor1();
+    updateSensor2();
+    if(forward_dis > 30)
+      {
+        forward(20);
+        updateSensor1();
+        updateSensor2();
+      }
+  }
+  if(right_dis < 15 && right_dis > 1 && forward_dis < 15 && forward_dis > 1)
+  {
+    rotate_l();
+    delay(1500);
+    updateSensor1();
+    updateSensor2();
+  }
+  if(forward_dis < 15)
+  {
+    backwards(15);
+    updateSensor1();
+    updateSensor2();
+  }
+}
+
+// int calculateRotationCount(int degrees) {
+//     float wheelCircumference = PIVALUE * 6.5;  // Wheel diameter is 6.5 cm
+//     float robotWidth = 15.0;  // Distance between wheels in cm
+//     float rotationCircumference = PIVALUE * robotWidth;
+//     float distanceToTravel = (degrees / 360.0) * rotationCircumference;
+//     return round((distanceToTravel / wheelCircumference) * 40);  // 40 encoder ticks per wheel rotation
+// }
+
+// void preciseRotate_r(int degrees) {
+//     int targetRotation = calculateRotationCount(degrees);
+//     int slowdownThreshold = targetRotation * 0.8;
+    
+//     noInterrupts();
+//     RRotation = 0;
+//     LRotation = 0;
+//     interrupts();
+    
+//     while (RRotation < targetRotation && LRotation < targetRotation) {
+//         int speed = (RRotation < slowdownThreshold) ? 50 : 25;
+        
+//         digitalWrite(MOTOR_A2, HIGH);  // Right motor forward
+//         digitalWrite(MOTOR_B2, LOW);   // Left motor backward
+//         analogWrite(MOTOR_A1, speed);
+//         analogWrite(MOTOR_B1, speed);
+//     }
+    
+//     stop_();
+// }
+int PID(int steeringError)
+{
+   // Proportional term
+  float proportional = Kp * steeringError;
+
+  // Integral term
+  integral += steeringError;  // Accumulate error over time
+  float integralTerm = Ki * integral;
+
+  // Derivative term
+  float derivative = steeringError - prevError;  // Rate of change of error
+  float derivativeTerm = Kd * derivative;
+
+  // Update previous error for the next loop
+  prevError = steeringError;
+
+  // Return the combined PID output
+  return proportional + integralTerm + derivativeTerm;
+}
+
+int steering_Error()
+{
+if(right_dis > 13 || right_dis < 7)
+{
+  steeringError = right_dis - 10;
+}
+return steeringError;
+}
+
+void adjustSteering(int steeringError) 
+{
+  // Calculate PID output based on the steering error
+  float PID_output = PID(steeringError);
+
+  // Base speed for motors when moving forward
+  int baseSpeed = 200; // Adjust this as necessary for your robot
+
+  // Adjust movement based on the steering error
+  if (steeringError <= 4 && steeringError >= -4 && steeringError != 0)
+  {
+    // Robot is aligned, move straight
+    analogWrite(MOTOR_A2, 255); // Left motor forward
+    digitalWrite(MOTOR_A1, LOW);      // Ensure left motor doesn't go backward
+    analogWrite(MOTOR_B1, 243); // Right motor forward
+    digitalWrite(MOTOR_B2, LOW);      // Ensure right motor doesn't go backward
+  }
+  else if (steeringError > 6)
+  {
+    // Robot needs to turn right
+    int leftSpeed = baseSpeed + PID_output;  // Increase speed for left motor
+    int rightSpeed = baseSpeed - PID_output; // Reduce speed for right motor
+
+    // Constrain speeds to valid PWM range
+    leftSpeed = constrain(leftSpeed, 0, 255);
+    rightSpeed = constrain(rightSpeed, 0, 255);
+
+    // Apply motor speeds
+    analogWrite(MOTOR_A2, leftSpeed); // Left motor forward
+    digitalWrite(MOTOR_A1, LOW);      // Ensure left motor doesn't go backward
+    analogWrite(MOTOR_B1, rightSpeed); // Right motor forward
+    digitalWrite(MOTOR_B2, LOW);       // Ensure right motor doesn't go backward
+  }
+  else if (steeringError == 0)
+  {
+    // Apply motor speeds
+    analogWrite(MOTOR_A2, 0); 
+    digitalWrite(MOTOR_A1, LOW);      
+    analogWrite(MOTOR_B1, 0); 
+    digitalWrite(MOTOR_B2, LOW);       
+  }
+  else if (steeringError < -6)
+  {
+    // Robot needs to turn left
+    int leftSpeed = baseSpeed - PID_output;  // Reduce speed for left motor
+    int rightSpeed = baseSpeed + PID_output; // Increase speed for right motor
+
+    // Constrain speeds to valid PWM range
+    leftSpeed = constrain(leftSpeed, 0, 255);
+    rightSpeed = constrain(rightSpeed, 0, 255);
+
+    // Apply motor speeds
+    analogWrite(MOTOR_A2, leftSpeed); // Left motor forward
+    digitalWrite(MOTOR_A1, LOW);      // Ensure left motor doesn't go backward
+    analogWrite(MOTOR_B1, rightSpeed); // Right motor forward
+    digitalWrite(MOTOR_B2, LOW);       // Ensure right motor doesn't go backward
+  }
+
+  // Optional: Debugging output
+  Serial.print("Steering Error: ");
+  Serial.print(steeringError);
+  Serial.print(" | PID Output: ");
+  Serial.print(PID_output);
+  // Serial.print(" | Left Speed: ");
+  // Serial.print((steeringError >= 0) ? baseSpeed + PID_output : baseSpeed - PID_output);
+  // Serial.print(" | Right Speed: ");
+  // Serial.println((steeringError >= 0) ? baseSpeed - PID_output : baseSpeed + PID_output);
 }
