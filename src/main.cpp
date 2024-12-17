@@ -51,6 +51,9 @@ void keepDistance();
 int calculateRotationCount(int degrees);
 void preciseRotate_r(int degrees);
 void logictest();
+void adjustSteering(int steeringError);
+int steering_Error();
+int PID(int steeringError);
 
 int RRotation = 0;
 int LRotation = 0;
@@ -103,9 +106,13 @@ void loop() {
     }
   }
   */
+  updateSensor1();
+  updateSensor2();
+ steering_Error();
+ adjustSteering(steeringError);
  //forward(20);
   //gameLogic();
-  logictest();
+  //logictest();
   // preciseRotate_r(90);
   // delay(2000);
   //backwards(10);
@@ -244,7 +251,7 @@ void turn_r() {
   while (LRotation < 40 && RRotation < 20) { // A is left B is right
   if (LRotation < 40) {
       digitalWrite(MOTOR_A2, HIGH);
-      analogWrite(MOTOR_A1, 10);
+      analogWrite(MOTOR_A1, 0);
     } else {
       digitalWrite(MOTOR_A2, LOW);
       analogWrite(MOTOR_A1, 0);
@@ -411,8 +418,8 @@ void sonar2() // right sonar
     {
       right_dis = distance[1];
     }
-    Serial.print("right Distance: ");
-    Serial.println(right_dis);
+    // Serial.print("right Distance: ");
+    // Serial.println(right_dis);
 }
 
 void gripper(int angle) {
@@ -581,31 +588,72 @@ int PID(int steeringError)
 
 int steering_Error()
 {
-if(right_dis > 13 || right_dis < 7)
+  updateSensor1();
+  updateSensor2();
+if(right_dis > 9 || right_dis < 11)
 {
   steeringError = right_dis - 10;
 }
+else
+{
+  steeringError = 0;
+}
+  Serial.println("steeringError: ");
+  Serial.println(steeringError);
+  Serial.println("right_dis: ");
+  Serial.println(right_dis);
 return steeringError;
 }
 
 void adjustSteering(int steeringError) 
 {
+  //steeringError = steering_Error();
   // Calculate PID output based on the steering error
   float PID_output = PID(steeringError);
 
   // Base speed for motors when moving forward
   int baseSpeed = 200; // Adjust this as necessary for your robot
+  steering_Error();
+  failSafe();
+  Serial.print("Steering Error: ");
+  Serial.print(steeringError);
+  Serial.print(" | PID Output: ");
+  Serial.print(PID_output);
+  if(forward_dis < 10 && steeringError < 6 && steeringError != 0)
+  {
+    rotate_l();
+    steering_Error();
+    delay(1000);
+    if(forward_dis > 20)
+    {
+      digitalWrite(MOTOR_A2, HIGH);
+      digitalWrite(MOTOR_B2, HIGH);
+      analogWrite(MOTOR_B1, 0);
+      analogWrite(MOTOR_A1, 0);
+      steering_Error();
+    }
+  }
+  if(steeringError > 10)
+  {
+    // updateSensor1();
+    // updateSensor2();
+    digitalWrite(MOTOR_A2, HIGH);
+    digitalWrite(MOTOR_B2, HIGH);
+    analogWrite(MOTOR_A1, 0);
+    analogWrite(MOTOR_B1, 190);
+    //forward(20);
+  }
 
   // Adjust movement based on the steering error
-  if (steeringError <= 4 && steeringError >= -4 && steeringError != 0)
+  if (steeringError <= 3 && steeringError >= -3 && steeringError != 0)
   {
     // Robot is aligned, move straight
-    analogWrite(MOTOR_A2, 255); // Left motor forward
-    digitalWrite(MOTOR_A1, LOW);      // Ensure left motor doesn't go backward
-    analogWrite(MOTOR_B1, 243); // Right motor forward
-    digitalWrite(MOTOR_B2, LOW);      // Ensure right motor doesn't go backward
+    digitalWrite(MOTOR_A2, HIGH); // Left motor forward
+    analogWrite(MOTOR_A1, 0);      // Ensure left motor doesn't go backward
+    analogWrite(MOTOR_B1, 0); // Right motor forward
+    digitalWrite(MOTOR_B2, HIGH);      // Ensure right motor doesn't go backward
   }
-  else if (steeringError > 6)
+  else if (steeringError >= 3 && steeringError <= 10)
   {
     // Robot needs to turn right
     int leftSpeed = baseSpeed + PID_output;  // Increase speed for left motor
@@ -615,21 +663,24 @@ void adjustSteering(int steeringError)
     leftSpeed = constrain(leftSpeed, 0, 255);
     rightSpeed = constrain(rightSpeed, 0, 255);
 
-    // Apply motor speeds
-    analogWrite(MOTOR_A2, leftSpeed); // Left motor forward
-    digitalWrite(MOTOR_A1, LOW);      // Ensure left motor doesn't go backward
-    analogWrite(MOTOR_B1, rightSpeed); // Right motor forward
-    digitalWrite(MOTOR_B2, LOW);       // Ensure right motor doesn't go backward
+    // Apply motor speeds EDITED THIS PART****************************************
+    digitalWrite(MOTOR_A2, HIGH); // Left motor forward
+    analogWrite(MOTOR_A1, 0);      // Ensure left motor doesn't go backward
+    analogWrite(MOTOR_B1, 40); // Right motor forward
+    digitalWrite(MOTOR_B2, HIGH);       // Ensure right motor doesn't go backward
+    // Serial.print("leftspeed: ");
+    // Serial.println(leftSpeed);
+    // Serial.println(rightSpeed);
   }
   else if (steeringError == 0)
   {
     // Apply motor speeds
-    analogWrite(MOTOR_A2, 0); 
-    digitalWrite(MOTOR_A1, LOW);      
+    digitalWrite(MOTOR_A2, HIGH); 
+    analogWrite(MOTOR_A1, 0);      
     analogWrite(MOTOR_B1, 0); 
-    digitalWrite(MOTOR_B2, LOW);       
+    digitalWrite(MOTOR_B2, HIGH);       
   }
-  else if (steeringError < -6)
+  else if (steeringError <= -5)
   {
     // Robot needs to turn left
     int leftSpeed = baseSpeed - PID_output;  // Reduce speed for left motor
@@ -640,17 +691,17 @@ void adjustSteering(int steeringError)
     rightSpeed = constrain(rightSpeed, 0, 255);
 
     // Apply motor speeds
-    analogWrite(MOTOR_A2, leftSpeed); // Left motor forward
-    digitalWrite(MOTOR_A1, LOW);      // Ensure left motor doesn't go backward
-    analogWrite(MOTOR_B1, rightSpeed); // Right motor forward
-    digitalWrite(MOTOR_B2, LOW);       // Ensure right motor doesn't go backward
+    digitalWrite(MOTOR_A2, HIGH); // Left motor forward
+    analogWrite(MOTOR_A1, 40);      // Ensure left motor doesn't go backward
+    analogWrite(MOTOR_B1, 0); // Right motor forward
+    digitalWrite(MOTOR_B2, HIGH);       // Ensure right motor doesn't go backward
   }
 
   // Optional: Debugging output
-  Serial.print("Steering Error: ");
-  Serial.print(steeringError);
-  Serial.print(" | PID Output: ");
-  Serial.print(PID_output);
+  // Serial.print("Steering Error: ");
+  // Serial.print(steeringError);
+  // Serial.print(" | PID Output: ");
+  // Serial.print(PID_output);
   // Serial.print(" | Left Speed: ");
   // Serial.print((steeringError >= 0) ? baseSpeed + PID_output : baseSpeed - PID_output);
   // Serial.print(" | Right Speed: ");
