@@ -1,6 +1,7 @@
 import os
 import time
 import serial
+import sqlite3
 
 from flask import Flask, redirect, render_template, request, session
 from flask_session import Session
@@ -10,6 +11,27 @@ app = Flask(__name__)
 
 app.config["SESSION_PERMANENT"] = False
 
+conn = sqlite3.connect("robot.db")
+cursor = conn.cursor()
+
+cursor.execute('''CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            username TEXT NOT NULL,
+            hash TEXT NOT NULL)''')
+
+cursor.execute('''CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)''')
+
+cursor.execute('''CREATE TABLE IF NOT EXISTS robot (
+            slave_num INTEGER PRIMARY KEY NOT NULL,
+            speed INTEGER NOT NULL,
+            lrotation INTEGER NOT NULL,
+            rrotation INTEGER NOT NULL,
+            action TEXT NOT NULL
+            time DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+
+conn.commit()
+
+#data via USB for data handling test
 arduino = serial.Serial("COM4", 9600, timeout=1)
 time.sleep(2)
 
@@ -17,8 +39,10 @@ def read_data():
     data = arduino.readline().decode("utf-8").rstrip().split(":")
     if data:
         return data
+    else:
+        return None
 
-#need SQL, SQL table users:name-hash, table robot1:speed-LRotations-RRotations-action-time refresh every second or so
+#need SQL, SQL table users:name-hash, table robot1-2-3:speed-LRotations-RRotations-action-time refresh every second or so
 
 @app.route('/')
 @login_required
@@ -29,8 +53,11 @@ def index():
 @login_required
 def line():
     if request.method == "GET":
-        return render_template("linefollower.html", speed=data[0], LRorations=data[1], RRotations=data[2], action=data[3])
-
+        data = read_data()
+        if data:
+            return render_template("linefollower.html", speed=data[0], LRotations=data[1], RRotations=data[2], action=data[3])
+        else:
+            return render_template("linefollower.html", error = "Unable to read data from Arduino")
 
 if __name__ == '__main__':
     app.run(debug=True)
