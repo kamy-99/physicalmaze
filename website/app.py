@@ -6,63 +6,50 @@ import sqlite3
 from flask import Flask, redirect, render_template, request, session
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
+from functools import wraps
 
-app = Flask(__name__)
+def create_app():
+    app = Flask(__name__)
+    app.config["SESSION_PERMANENT"] = False # no reason to make it true
+    app.secret_key = os.environ.get("FLASK_SECRET_KEY") # for some reason it needed a secret key
 
-app.config["SESSION_PERMANENT"] = False
+    init_db()
+    
+    return app
 
-conn = sqlite3.connect("robot.db")
-cursor = conn.cursor()
+def get_db_conn():
+    conn = sqlite3.connect("robot.db")
+    conn.row_factory = sqlite3.Row
+    return conn
 
-cursor.execute('''CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-            username TEXT NOT NULL,
-            hash TEXT NOT NULL)''')
+def init_db(): # instead of robot.db having the tables by default i have decided to create them when the website opens (i just didn't know how to put tables in the db)
+        db = sqlite3.connect("robot.db")
+        db.execute('''CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    username TEXT NOT NULL,
+                    hash TEXT NOT NULL)''')
+        
+        db.execute('''CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)''')
+        
+        db.execute('''CREATE TABLE IF NOT EXISTS robot (
+                    slave_num INTEGER PRIMARY KEY NOT NULL,
+                    speed INTEGER NOT NULL,
+                    lrotation INTEGER NOT NULL,
+                    rrotation INTEGER NOT NULL,
+                    action TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+        
+        db.commit()
+        db.close()
 
-cursor.execute('''CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)''')
+app = create_app()
 
-cursor.execute('''CREATE TABLE IF NOT EXISTS robot (
-            slave_num INTEGER PRIMARY KEY NOT NULL,
-            speed INTEGER NOT NULL,
-            lrotation INTEGER NOT NULL,
-            rrotation INTEGER NOT NULL,
-            action TEXT NOT NULL
-            time DATETIME DEFAULT CURRENT_TIMESTAMP)''')
-
-conn.commit()
-
-#data via USB for data handling test
-arduino = serial.Serial("COM4", 9600, timeout=1)
-time.sleep(2)
-
-def read_data():
-    data = arduino.readline().decode("utf-8").rstrip().split(":")
-    if data:
-        return data
-    else:
-        return None
+if __name__ == "__main__":
+    app.run(debug=True) # for debugging
 
 #need SQL, SQL table users:name-hash, table robot1-2-3:speed-LRotations-RRotations-action-time refresh every second or so
 
-@app.route('/')
-@login_required
-def index():
-    return render_template("main.html")
-
-@app.route("/linefollower", methods=["GET", "POST"])
-@login_required
-def line():
-    if request.method == "GET":
-        data = read_data()
-        if data:
-            return render_template("linefollower.html", speed=data[0], LRotations=data[1], RRotations=data[2], action=data[3])
-        else:
-            return render_template("linefollower.html", error = "Unable to read data from Arduino")
-
-if __name__ == '__main__':
-    app.run(debug=True)
-
-def login_required(f):
+def login_required(f): # copied from finance 
     """
     Decorate routes to require login.
 
@@ -76,6 +63,20 @@ def login_required(f):
         return f(*args, **kwargs)
 
     return decorated_function
+
+@app.route('/')
+@login_required
+def index():
+    return render_template("main.html")
+
+@app.route("/linefollower", methods=["GET", "POST"])
+@login_required
+def line():
+    if request.method == "GET":
+        #still need to do this but i had enough for today
+        #get back the latest information about the robot
+        return render_template("linefollower.html")
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -94,6 +95,9 @@ def login():
         elif not request.form.get("password"):
             return render_template("error.html")
 
+        conn = get_db_conn()
+        db = conn.cursor()
+
         # Query database for username
         rows = db.execute(
             "SELECT * FROM users WHERE username = ?", request.form.get("username")
@@ -107,6 +111,9 @@ def login():
 
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
+
+        db.commit()
+        db.close()
 
         # Redirect user to home page
         return redirect("/")
@@ -146,6 +153,9 @@ def register():
         elif request.form.get("confirmation") != request.form.get("password"):
             return render_template("error.html")
 
+        conn = get_db_conn()
+        db = conn.cursor()
+
         rows = db.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))
 
         # Ensure username doesn't exist, had to do this way instead of try:except because we need the password hash when we try it
@@ -158,7 +168,8 @@ def register():
             user_id = db.execute("INSERT INTO users (username, hash) VALUES (?, ?)", request.form.get("username"), hash_pass)
         except:
             return render_template("error.html")
-
+        db.commit()
+        db.close()
         session["user_id"] = user_id
 
         return redirect("/")
