@@ -5,8 +5,6 @@ import time
 
 app = Flask(__name__)
 
-
-
 # this function is for receiveing the data from the master
 @app.route('/api/data', methods=['POST'])
 def receive_data():
@@ -14,7 +12,7 @@ def receive_data():
         return jsonify({"error": "Request must be JSON"}), 400
         
     data = request.get_json()
-    
+    print("data from arduino:", data, flush=True)
     # had to make them short because it takes too much time to transmit full names like "slave_num" then just a number etc
     slave_num = data.get('sn')
     speed = data.get('s')
@@ -29,7 +27,7 @@ def receive_data():
         insert_into_db(slave_num, speed, lrotation, rrotation, action) # just try put them into the DB
     except sqlite3.Error as e:
         print(f"Database insert failed: {e}")
-        
+    
     return jsonify({"message": "Data received successfully"}), 200
 
 # this is the function that is important for the 
@@ -88,7 +86,7 @@ def insert_into_db(slave_num, speed, lrotation, rrotation, action):
                           VALUES (?, ?, ?, ?, ?)''', (slave_num, speed, lrotation, rrotation, action))
         conn.commit()
     except sqlite3.Error as e:
-        print(f"Error inserting into database: {e}") # for debugging and testing
+        print(f"Error inserting into database: {e}",flush=True) # for debugging and testing
     finally:
         conn.close()
 
@@ -111,5 +109,4 @@ def pmaze():
     return render_template("pmaze.html")
 
 if __name__ == "__main__":
-    app = create_app()
     app.run(debug=True)
