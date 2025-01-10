@@ -40,7 +40,6 @@ def stream():
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM robot ORDER BY created_at DESC LIMIT 1") # since I use timestamps it's easiest with it
             data = cursor.fetchone()
-            print(data, flush=True)
             conn.close()
 
             if data:
@@ -53,7 +52,8 @@ def stream():
                     'time': data['time']
                 })
                 yield f"data: {json_data}\n\n"
-            
+            else:
+                print(data,"Data could not be retrieved", flush=True)
             time.sleep(0.5)  # Wait before next update
             yield ": heartbeat\n\n"
 
