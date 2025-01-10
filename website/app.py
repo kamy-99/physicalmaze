@@ -56,6 +56,7 @@ def stream():
                 yield f"data: {json_data}\n\n"
             
             time.sleep(0.5)  # Wait before next update
+            yield ": heartbeat\n\n"
 
     return Response(stream_with_context(generate()), mimetype="text/event-stream")
 
