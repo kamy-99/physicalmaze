@@ -5,11 +5,7 @@ import time
 
 app = Flask(__name__)
 
-def create_app():
 
-    init_db()
-
-    return app
 
 # this function is for receiveing the data from the master
 @app.route('/api/data', methods=['POST'])
@@ -44,7 +40,7 @@ def stream():
             # always get the latest data from the DB
             conn = get_db_conn()
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM robot ORDER BY time DESC LIMIT 1") # since I use timestamps it's easiest with it
+            cursor.execute("SELECT * FROM robot ORDER BY created_at DESC LIMIT 1") # since I use timestamps it's easiest with it
             data = cursor.fetchone()
             conn.close()
 
@@ -77,7 +73,7 @@ def init_db():
                 lrotation INTEGER NOT NULL,
                 rrotation INTEGER NOT NULL,
                 action TEXT NOT NULL,
-                time DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP)''')
     
     db.commit()
     db.close()
@@ -93,6 +89,8 @@ def insert_into_db(slave_num, speed, lrotation, rrotation, action):
         print(f"Error inserting into database: {e}") # for debugging and testing
     finally:
         conn.close()
+
+init_db()
 
 @app.route('/')
 def index():
