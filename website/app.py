@@ -8,6 +8,8 @@ app = Flask(__name__)
 # this function is for receiveing the data from the master
 @app.route('/api/data', methods=['POST'])
 def receive_data():
+    print("Received headers:", request.headers)
+    print("Received data:", request.get_data())
     if not request.is_json: # make sure it's json
         return jsonify({"error": "Request must be JSON"}), 400
         
