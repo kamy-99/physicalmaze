@@ -1,17 +1,71 @@
 import sqlite3
 import json
-from flask import Flask, redirect, render_template, Response, request, jsonify
+from flask import Flask, redirect, render_template, Response, request, jsonify, stream_with_context
+import time
+
+app = Flask(__name__)
 
 def create_app():
-    app = Flask(__name__)
 
     init_db()
-    
+
     return app
+
+# this function is for receiveing the data from the master
+@app.route('/api/data', methods=['POST'])
+def receive_data():
+    if not request.is_json: # make sure it's json
+        return jsonify({"error": "Request must be JSON"}), 400
+        
+    data = request.get_json()
+    
+    # had to make them short because it takes too much time to transmit full names like "slave_num" then just a number etc
+    slave_num = data.get('sn')
+    speed = data.get('s')
+    lrotation = data.get('lr')
+    rrotation = data.get('rr')
+    action = data.get('a')
+        
+    if not all([slave_num, speed, lrotation, rrotation, action]): # if not all data are here return an error
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    try:
+        insert_into_db(slave_num, speed, lrotation, rrotation, action) # just try put them into the DB
+    except sqlite3.Error as e:
+        print(f"Database insert failed: {e}")
+        
+    return jsonify({"message": "Data received successfully"}), 200
+
+# this is the function that is important for the 
+@app.route('/stream')
+def stream():
+    def generate():
+        while True:
+            # always get the latest data from the DB
+            conn = get_db_conn()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM robot ORDER BY time DESC LIMIT 1") # since I use timestamps it's easiest with it
+            data = cursor.fetchone()
+            conn.close()
+
+            if data:
+                json_data = json.dumps({ # here because of the row_factory i can just call data[column] instead of data[0], data[1], etc very cool!
+                    'slave_num': data['slave_num'],
+                    'speed': data['speed'],
+                    'lrotation': data['lrotation'],
+                    'rrotation': data['rrotation'],
+                    'action': data['action'],
+                    'time': data['time']
+                })
+                yield f"data: {json_data}\n\n"
+            
+            time.sleep(0.5)  # Wait before next update
+
+    return Response(stream_with_context(generate()), mimetype="text/event-stream")
 
 def get_db_conn():
     conn = sqlite3.connect("robot.db")
-    conn.row_factory = sqlite3.Row
+    conn.row_factory = sqlite3.Row # I just learned that this is very cool because i can call the colunm names with this
     return conn
 
 def init_db():
@@ -28,8 +82,6 @@ def init_db():
     db.commit()
     db.close()
 
-app = create_app()
-
 def insert_into_db(slave_num, speed, lrotation, rrotation, action):
     conn = get_db_conn()
     cursor = conn.cursor()
@@ -37,8 +89,8 @@ def insert_into_db(slave_num, speed, lrotation, rrotation, action):
         cursor.execute('''INSERT INTO robot (slave_num, speed, lrotation, rrotation, action) 
                           VALUES (?, ?, ?, ?, ?)''', (slave_num, speed, lrotation, rrotation, action))
         conn.commit()
-    except Exception as e:
-        print(f"Error inserting into database: {e}") # for testing
+    except sqlite3.Error as e:
+        print(f"Error inserting into database: {e}") # for debugging and testing
     finally:
         conn.close()
 
@@ -59,4 +111,5 @@ def pmaze():
     return render_template("pmaze.html")
 
 if __name__ == "__main__":
-    app.run(debug=True) # for debugging
+    app = create_app()
+    app.run(debug=True)
