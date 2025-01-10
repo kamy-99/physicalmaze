@@ -372,10 +372,10 @@ void adjustSteering(int steeringError)
   }
 
   // Optional: Debugging output
-  Serial.print("Steering Error: ");
-  Serial.print(steeringError);
-  Serial.print(" | PID Output: ");
-  Serial.print(PID_output);
+  // Serial.print("Steering Error: ");
+  // Serial.print(steeringError);
+  // Serial.print(" | PID Output: ");
+  // Serial.print(PID_output);
   // Serial.print(" | Left Speed: ");
   // Serial.print((steeringError >= 0) ? baseSpeed + PID_output : baseSpeed - PID_output);
   // Serial.print(" | Right Speed: ");
@@ -598,3 +598,484 @@ void printSensorStates() {
   // Serial.println(" ");
   // delay(500); // Delay for readability in the Serial Monitor
 }
+
+
+
+
+
+
+
+
+
+Night
+night3575
+Invisible
+
+Huqra — Yesterday at 21:00
+This is the old code, with working PID
+// #include <Arduino.h>
+
+// // Sonar pin defines
+// #define trig 4
+// #define echo 7
+Expand
+message.txt
+24 KB
+This one is the newest PID, which i am having issues with to make it work as a whole
+#include <Arduino.h>
+#include <Adafruit_NeoPixel.h>
+
+// Sonar pin defines
+#define trig 4
+#define echo 7
+
+// Motor pin defines
+#define MotorA1 8 // MotorA1 at port 8 digital
+#define MotorA2 10 // MotorA2 at port 10 analog 
+#define MotorB1 11 // MotorB1 at port 11 analog
+#define MotorB2 12 // MotorB2 at port 12 digital  
+
+#define Gripper 9 // gripper at 9 analog
+#define RotationR1 2 // RotationR1 at port 2 digital
+#define RotationR2 3 // RotationR2 at port 3 digital
+
+#define LEDPIN 5
+#define DVALUE 10 // debounce value in ms
+#define SERVO_INTERVAL 20
+
+// A1 left backward
+// A2 left forward
+// B1 right forward
+// B2 right backward
+
+// Sensor pin definitions
+int linePins[] = {A0, A1, A2, A3, A4, A5, A6, A7};
+
+// Arrays to store sensor values
+int minlineValue[8] = {9999};
+int maxlineValue[8] = {-9999};
+int avglineValue[8];
+int High_Threshold[8];
+int Low_Threshold[8];
+
+
+// Sensor states
+String sensorStates[8]; // Holds the current state for each sensor
+int sensorValues[8];
+
+// Add an array to store the previous state of each sensor
+String previousSensorStates[8];
+
+// Define the weights for each sensor (based on their distance from the center)
+int sensorWeights[] = {-7, -5, -3, 1, 1, 3, 5, 7};  // A0 has weight -7, A7 has weight +7
+
+
+#define AVERAGE_WINDOW 1  // Number of readings to average
+int recentReadings[8][AVERAGE_WINDOW];
+int readingIndex = 0;
+
+// NeoPixels
+int NUMPIXELS = 4;
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_RGB + NEO_KHZ800);
+
+
+//drop cone
+bool coneGrabbed = false;
+bool endPart = false;
+int finish_counter = 0;
+int black_counter = 0;
+
+// gripper
+int pulse;
+
+// PWM
+int pwm;
+int amount = 0;
+
+// Rotation sensor
+int RightRotation = 0;
+int LeftRotation = 0;
+
+// Sonar
+float duration;
+int distance;
+bool flagUp = false;
+bool hasExecuted = false;
+bool objectDistance = false;
+
+bool startSonar = true;
+
+// PID variables
+float Kp = 8.5;    // Increase proportional constant for quicker response 8 || 7.25 || 9
+float Ki = 7.0;    // Small integral constant to reduce drift over time 2 || 1.25 || 9
+float Kd = 2.0;   // Moderate derivative constant to dampen oscillations 0.5 || 0.75
+
+int lastKnownSteeringError = 0;
+float prevError = 0;    // Previous error value (for derivative term)
+float integral = 0;     // Accumulated error (for integral term)
+int steeringError = 0;
+
+
+// To be able to use the functions via Platform IO
+// movement functions
+void forward();
+void backward();
+void stop();
+void spin_Right();
+... (1,154 lines left)
+Collapse
+message.txt
+34 KB
+Huqra — Today at 13:53
+All functions to make the pid work
+// Sensor pin definitions
+int linePins[] = {A0, A1, A2, A3, A4, A5, A6, A7};
+
+// Arrays to store sensor values
+int minlineValue[8] = {9999};
+int maxlineValue[8] = {-9999};
+int avglineValue[8];
+int High_Threshold[8];
+int Low_Threshold[8];
+
+
+// Sensor states
+String sensorStates[8]; // Holds the current state for each sensor
+int sensorValues[8];
+
+// Add an array to store the previous state of each sensor
+String previousSensorStates[8];
+
+// Define the weights for each sensor (based on their distance from the center)
+int sensorWeights[] = {-7, -5, -3, 1, 1, 3, 5, 7};  // A0 has weight -7, A7 has weight +7
+
+
+#define AVERAGE_WINDOW 1  // Number of readings to average
+int recentReadings[8][AVERAGE_WINDOW];
+int readingIndex = 0;
+
+// PID variables
+float Kp = 7.25;    // Increase proportional constant for quicker response 7.25 || 9 || 8.5
+float Ki = 1.25;    // Small integral constant to reduce drift over time 1.25 || 9 || 7.0
+float Kd = 0.75;   // Moderate derivative constant to dampen oscillations 0.5 || 0.75 || 2.0
+
+int lastKnownSteeringError = 0;
+float prevError = 0;    // Previous error value (for derivative term)
+float integral = 0;     // Accumulated error (for integral term)
+int steeringError = 0;
+
+  int steeringError = 0; // Variable to store the calculated error for steering
+
+  // Read all sensor values and calculate the weighted sum (steering error)
+   for (int i =0; i < 8; i++)
+  {
+  if (sensorStates[i] == "black")
+   {
+    steeringError += sensorWeights[i];  // Add weighted sensor value to the total error
+   }
+  }
+
+int PID(int steeringError)
+{
+  static unsigned long timer = 0;
+  if (millis() > timer) // Check if 50ms have passed
+  {
+    // Proportional term
+    float proportional = Kp * steeringError;
+
+    // Integral term
+    integral += steeringError;  // Accumulate error over time
+    float integralTerm = Ki * integral;
+
+    // Derivative term
+    float derivative = steeringError - prevError;  // Rate of change of error
+    float derivativeTerm = Kd * derivative;
+
+    // Update previous error for the next loop
+    prevError = steeringError;
+    
+    // Update the timer
+    timer = millis() + 12;
+    
+    // Return the combined PID output
+    return proportional + integralTerm + derivativeTerm;
+  }
+}
+
+void adjustSteering(int steeringError) 
+{
+  // Calculate PID output based on the steering error
+  float PID_output = PID(steeringError);
+
+  // Base speed for motors when moving forward
+  int baseSpeed = 255; // Adjust this as necessary for your robot 235
+
+    // Update last known steering error if line is detected
+  if (steeringError != 0) {
+    lastKnownSteeringError = steeringError;
+  }
+
+  // Adjust movement based on the steering error
+  if (steeringError <= 4 && steeringError >= -4 && steeringError != 0) // 7, -7 
+  {
+    // Robot is aligned, move straight
+    analogWrite(MotorA2, 255); // Left motor forward
+    digitalWrite(MotorA1, LOW);      // Ensure left motor doesn't go backward
+    analogWrite(MotorB1, 255); // Right motor forward
+    digitalWrite(MotorB2, LOW);      // Ensure right motor doesn't go backward
+  }
+  else if (steeringError <= -6) // -11
+  {
+    // Robot needs to turn left
+    int leftSpeed = baseSpeed - PID_output;  // Reduce speed for left motor
+... (140 lines left)
+Collapse
+message.txt
+8 KB
+﻿
+Huqra
+huqra
+ 
+Disgraceful if, in this life where your body does not fail, your soul should fail you first.
+// Sensor pin definitions
+int linePins[] = {A0, A1, A2, A3, A4, A5, A6, A7};
+
+// Arrays to store sensor values
+int minlineValue[8] = {9999};
+int maxlineValue[8] = {-9999};
+int avglineValue[8];
+int High_Threshold[8];
+int Low_Threshold[8];
+
+
+// Sensor states
+String sensorStates[8]; // Holds the current state for each sensor
+int sensorValues[8];
+
+// Add an array to store the previous state of each sensor
+String previousSensorStates[8];
+
+// Define the weights for each sensor (based on their distance from the center)
+int sensorWeights[] = {-7, -5, -3, 1, 1, 3, 5, 7};  // A0 has weight -7, A7 has weight +7
+
+
+#define AVERAGE_WINDOW 1  // Number of readings to average
+int recentReadings[8][AVERAGE_WINDOW];
+int readingIndex = 0;
+
+// PID variables
+float Kp = 7.25;    // Increase proportional constant for quicker response 7.25 || 9 || 8.5
+float Ki = 1.25;    // Small integral constant to reduce drift over time 1.25 || 9 || 7.0
+float Kd = 0.75;   // Moderate derivative constant to dampen oscillations 0.5 || 0.75 || 2.0
+
+int lastKnownSteeringError = 0;
+float prevError = 0;    // Previous error value (for derivative term)
+float integral = 0;     // Accumulated error (for integral term)
+int steeringError = 0;
+
+  int steeringError = 0; // Variable to store the calculated error for steering
+
+  // Read all sensor values and calculate the weighted sum (steering error)
+   for (int i =0; i < 8; i++)
+  {
+  if (sensorStates[i] == "black")
+   {
+    steeringError += sensorWeights[i];  // Add weighted sensor value to the total error
+   }
+  }
+
+int PID(int steeringError)
+{
+  static unsigned long timer = 0;
+  if (millis() > timer) // Check if 50ms have passed
+  {
+    // Proportional term
+    float proportional = Kp * steeringError;
+
+    // Integral term
+    integral += steeringError;  // Accumulate error over time
+    float integralTerm = Ki * integral;
+
+    // Derivative term
+    float derivative = steeringError - prevError;  // Rate of change of error
+    float derivativeTerm = Kd * derivative;
+
+    // Update previous error for the next loop
+    prevError = steeringError;
+    
+    // Update the timer
+    timer = millis() + 12;
+    
+    // Return the combined PID output
+    return proportional + integralTerm + derivativeTerm;
+  }
+}
+
+void adjustSteering(int steeringError) 
+{
+  // Calculate PID output based on the steering error
+  float PID_output = PID(steeringError);
+
+  // Base speed for motors when moving forward
+  int baseSpeed = 255; // Adjust this as necessary for your robot 235
+
+    // Update last known steering error if line is detected
+  if (steeringError != 0) {
+    lastKnownSteeringError = steeringError;
+  }
+
+  // Adjust movement based on the steering error
+  if (steeringError <= 4 && steeringError >= -4 && steeringError != 0) // 7, -7 
+  {
+    // Robot is aligned, move straight
+    analogWrite(MotorA2, 255); // Left motor forward
+    digitalWrite(MotorA1, LOW);      // Ensure left motor doesn't go backward
+    analogWrite(MotorB1, 255); // Right motor forward
+    digitalWrite(MotorB2, LOW);      // Ensure right motor doesn't go backward
+  }
+  else if (steeringError <= -6) // -11
+  {
+    // Robot needs to turn left
+    int leftSpeed = baseSpeed - PID_output;  // Reduce speed for left motor
+    int rightSpeed = baseSpeed + PID_output; // Increase speed for right motor
+
+    // Constrain speeds to valid PWM range
+    leftSpeed = constrain(leftSpeed, 0, 255);
+    rightSpeed = constrain(rightSpeed, 0, 255);
+
+    // Apply motor speeds
+    analogWrite(MotorA2, leftSpeed); // Left motor forward
+    digitalWrite(MotorA1, LOW);      // Ensure left motor doesn't go backward
+    analogWrite(MotorB1, rightSpeed); // Right motor forward
+    digitalWrite(MotorB2, LOW);       // Ensure right motor doesn't go backward
+  }
+  else if (steeringError >= 6) // 11
+  {
+    // Robot needs to turn right
+    int leftSpeed = baseSpeed + PID_output;  // Increase speed for left motor
+    int rightSpeed = baseSpeed - PID_output; // Reduce speed for right motor
+
+    // Constrain speeds to valid PWM range
+    leftSpeed = constrain(leftSpeed, 0, 255);
+    rightSpeed = constrain(rightSpeed, 0, 255);
+
+    // Apply motor speeds
+    analogWrite(MotorA2, leftSpeed); // Left motor forward
+    digitalWrite(MotorA1, LOW);      // Ensure left motor doesn't go backward
+    analogWrite(MotorB1, rightSpeed); // Right motor forward
+    digitalWrite(MotorB2, LOW);       // Ensure right motor doesn't go backward
+
+  }
+  // Optional: Debugging output
+  Serial.print("Steering Error: ");
+  Serial.print(steeringError);
+  Serial.print(" | PID Output: ");
+  Serial.print(PID_output);
+}
+
+void returnToLine(int steeringError) {
+  int baseSpeed = 255; // Lower speed for more precise movement
+  unsigned long startTime = millis();
+  bool lineFound = false;
+
+  // Turn in the direction of the last known error for 100 ms
+  while (millis() - startTime < 100 && !lineFound) {
+    if (lastKnownSteeringError < 0) {
+      // Turn left
+      analogWrite(MotorA2, baseSpeed - 100 );
+      digitalWrite(MotorA1, HIGH);
+      analogWrite(MotorB1, baseSpeed);
+      digitalWrite(MotorB2, LOW);
+    } else {
+      // Turn right (including when lastKnownSteeringError == 0)
+      analogWrite(MotorA2, baseSpeed);
+      digitalWrite(MotorA1, LOW);
+      analogWrite(MotorB1, baseSpeed - 100);
+      digitalWrite(MotorB2, HIGH);
+    }
+
+    // Check if line is detected
+    int currentError = steeringError; // Implement this function to calculate current error
+    if (currentError != 0) {
+      lineFound = true;
+      return;
+    }
+  }
+}
+
+void Initializing()
+{
+  for (int i = 0; i < 8; i++) {
+    pinMode(linePins[i], INPUT);
+    sensorStates[i] = "white"; // Initial state for all sensors
+
+    // Initialize recent readings
+    for (int j = 0; j < AVERAGE_WINDOW; j++) {
+      recentReadings[i][j] = 0;
+    }
+  }
+}
+
+void calibrateSensors() {
+  // Serial.println("Calibrating sensors...");
+
+  for (int i = 0; i < 10; i++) {  // Adjust the number of calibration iterations as needed
+    for (int j = 0; j < 8; j++) {
+      int sensorValue = analogRead(linePins[j]);
+
+      // Update minimum and maximum values
+      if (sensorValue < minlineValue[j]) {
+        minlineValue[j] = sensorValue;
+      }
+      if (sensorValue > maxlineValue[j]) {
+        maxlineValue[j] = sensorValue;
+      }
+      sensorValues[j] = sensorValue;
+    }
+  }
+   // Calculate static thresholds for each sensor
+  for (int i = 0; i < 8; i++) {
+  High_Threshold[i] = 800; //(maxlineValue[i] + minlineValue[i]) / 2 + 100; // Black threshold
+  Low_Threshold[i] =  High_Threshold[i] - 50;//( maxlineValue[i] + minlineValue[i]) / 2 - 100; // Adjusted white threshold (higher range)
+  }
+  // Serial.println("Calibration complete!");
+}
+
+void lineCalibration() {
+  for (int i = 0; i < 8; i++) {
+    int sensorValue = analogRead(linePins[i]);
+
+    // Update recent readings
+    recentReadings[i][readingIndex] = sensorValue;
+
+    // Calculate moving average
+    long sum = 0;
+    for (int j = 0; j < AVERAGE_WINDOW; j++) {
+      sum += recentReadings[i][j];
+    }
+    avglineValue[i] = sum;
+  }
+
+  // Update reading index
+  readingIndex = (readingIndex + 1) % AVERAGE_WINDOW;
+
+  //delay(200); // Delay for stability
+}
+
+void determineStates() {
+  for (int i = 0; i < 8; i++) {
+    if (sensorValues[i] >= High_Threshold[i]) {
+      sensorStates[i] = "black";
+    } else if (sensorValues[i] <= Low_Threshold[i]) {
+      sensorStates[i] = "white";
+    } else {
+      // In the gap between thresholds, maintain the previous state
+      sensorStates[i] = previousSensorStates[i];
+    }
+
+    // Update the previous state after determining the current state
+    previousSensorStates[i] = sensorStates[i];
+  }
+}
+message.txt
+8 KB
