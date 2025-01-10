@@ -16,11 +16,6 @@
       </div>
       <img class="logo" src="/static/img/redbullcom-logo_double-with-text.svg" alt="Logo">
     </div>
-    <div class="middle-section">
-      <button>Button1</button>
-      <button>Button2</button>
-      <button>Button3</button>
-    </div> 
     <div class="right-section">
       <a href="https://www.youtube.com/" target="_blank" class="youtube-link">
         <button class="youtube-button">
@@ -34,17 +29,33 @@
     <div class="status-grid">
       <div class="status-box">
         Current Speed
-        <span id="current-speed">50 km/h</span> <!-- Example value -->
+        <span id="speed"></span> <!-- Example value -->
       </div>
       <div class="status-box">
         Direction
-        <span id="direction">Forward</span> <!-- Example value -->
+        <span id="action"></span> <!-- Example value -->
       </div>
       <div class="status-box">
-        Active
-        <span id="active-status">Yes</span> <!-- Example value -->
+        Left Rotation
+        <span id="lrotation"></span> <!-- Example value -->
+      </div>
+      <div class="status-box">
+        Right Rotation
+        <span id="rrotation"></span> <!-- Example value -->
       </div>
     </div>
   </div>
+  <script>
+    const eventSource = new EventSource('/stream');
+    eventSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        //document.getElementById('slave-num').textContent = data.slave_num;
+        document.getElementById('speed').textContent = data.speed;
+        document.getElementById('lrotation').textContent = data.lrotation;
+        document.getElementById('rrotation').textContent = data.rrotation;
+        document.getElementById('action').textContent = data.action;
+        //document.getElementById('time').textContent = data.time;
+    };
+</script>
 </body>
 </html>

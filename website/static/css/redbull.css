@@ -242,6 +242,7 @@ code for the bot web page specifically
   border: 1px solid #ccc;
   border-radius: 8px;
   display: flex;
+  flex-direction:column;
   justify-content: center;
   align-items: center;
   text-align: center;
@@ -251,7 +252,6 @@ code for the bot web page specifically
 }
 
 .status-box span {
-  display: block;
   font-size: 16px;
   color: #555;
 }
