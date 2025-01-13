@@ -45,18 +45,17 @@
       </div>
     </div>
   </div>
+
+  <canvas id="speedChart" width="800" height="400"></canvas>
+  <script src="/static/js/chart.js"></script>
   <script>
     const eventSource = new EventSource('/stream');
     eventSource.onmessage = function(event) {
-        console.log("Received event:", event);
-        const data = JSON.parse(event.data);
-        console.log("Parsed data:", data);
-        //document.getElementById('slave-num').textContent = data.slave_num;
+        const data = JSON.parse(event.data); // get the data
         document.getElementById('speed').textContent = data.speed;
         document.getElementById('lrotation').textContent = data.lrotation;
         document.getElementById('rrotation').textContent = data.rrotation;
         document.getElementById('action').textContent = data.action;
-        //document.getElementById('time').textContent = data.time;
     };
 </script>
 </body>
