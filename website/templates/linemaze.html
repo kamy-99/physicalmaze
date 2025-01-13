@@ -16,6 +16,11 @@
       </div>
       <img class="logo" src="/static/img/redbullcom-logo_double-with-text.svg" alt="Logo">
     </div>
+  <div class="middle-section">
+    <a href="contact.html" class="contact-link">
+      <button class="contact-button">Contact Us</button>
+    </a>
+  </div>
     <div class="right-section">
       <a href="https://www.youtube.com/" target="_blank" class="youtube-link">
         <button class="youtube-button">
@@ -45,13 +50,17 @@
       </div>
     </div>
   </div>
-
-  <canvas id="speedChart" width="800" height="400"></canvas>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/static/js/chart.js"></script>
+  <canvas id="speedChart" width="800" height="400"></canvas>
+  
   <script>
-    const eventSource = new EventSource('/stream');
-    eventSource.onmessage = function(event) {
+    const eventSource1 = new EventSource('/stream');
+    eventSource1.onmessage = function(event) {
         const data = JSON.parse(event.data); // get the data
+        speedChart.data.datasets[0].data.push(data.speed);
+        speedChart.update();
+
         document.getElementById('speed').textContent = data.speed;
         document.getElementById('lrotation').textContent = data.lrotation;
         document.getElementById('rrotation').textContent = data.rrotation;

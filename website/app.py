@@ -1,6 +1,6 @@
 import sqlite3
 import json
-from flask import Flask, redirect, render_template, Response, request, jsonify, stream_with_context
+from flask import Flask, render_template, Response, request, jsonify, stream_with_context
 import time
 
 app = Flask(__name__)
@@ -12,7 +12,7 @@ def receive_data():
     print("Received data:", request.get_data())
     if not request.is_json: # make sure it's json
         return jsonify({"error": "Request must be JSON"}), 400
-        
+
     data = request.get_json()
     print("data from arduino:", data, flush=True)
     # had to make them short because it takes too much time to transmit full names like "slave_num" then just a number etc
@@ -20,19 +20,20 @@ def receive_data():
     speed = data.get('s')
     lrotation = data.get('lr')
     rrotation = data.get('rr')
+    sonar = data.get('so')
     action = data.get('a')
-        
-    if not all([slave_num, speed, lrotation, rrotation, action]): # if not all data are here return an error
+
+    if not all([slave_num, speed, lrotation, rrotation, sonar, action]): # if not all data are here return an error
         return jsonify({"error": "Missing required fields"}), 400
-    
+
     try:
-        insert_into_db(slave_num, speed, lrotation, rrotation, action) # just try put them into the DB
+        insert_into_db(slave_num, speed, lrotation, rrotation, sonar, action) # just try put them into the DB
     except sqlite3.Error as e:
         print(f"Database insert failed: {e}")
     
     return jsonify({"message": "Data received successfully"}), 200
 
-# this is the function that is important for the 
+# this is the function that is important for the real time data
 @app.route('/stream')
 def stream():
     def generate():
@@ -50,14 +51,16 @@ def stream():
                     'speed': data['speed'],
                     'lrotation': data['lrotation'],
                     'rrotation': data['rrotation'],
+                    'sonar': data['sonar'],
                     'action': data['action'],
                     'time': data['created_at']
                 })
                 yield f"data: {json_data}\n\n"
             else:
                 print(data,"Data could not be retrieved", flush=True)
+                yield ": heartbeat\n\n"
             time.sleep(0.5)  # Wait before next update
-            yield ": heartbeat\n\n"
+            
 
     return Response(stream_with_context(generate()), mimetype="text/event-stream")
 
@@ -74,18 +77,19 @@ def init_db():
                 speed INTEGER NOT NULL,
                 lrotation INTEGER NOT NULL,
                 rrotation INTEGER NOT NULL,
+                sonar INTEGER NOT NULL,
                 action TEXT NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP)''')
     
     db.commit()
     db.close()
 
-def insert_into_db(slave_num, speed, lrotation, rrotation, action):
+def insert_into_db(slave_num, speed, lrotation, rrotation, sonar, action):
     conn = get_db_conn()
     cursor = conn.cursor()
     try:
-        cursor.execute('''INSERT INTO robot (slave_num, speed, lrotation, rrotation, action) 
-                          VALUES (?, ?, ?, ?, ?)''', (slave_num, speed, lrotation, rrotation, action))
+        cursor.execute('''INSERT INTO robot (slave_num, speed, lrotation, rrotation, sonar, action)
+                          VALUES (?, ?, ?, ?, ?, ?)''', (slave_num, speed, lrotation, rrotation, sonar, action))
         conn.commit()
     except sqlite3.Error as e:
         print(f"Error inserting into database: {e}",flush=True) # for debugging and testing
@@ -111,4 +115,4 @@ def pmaze():
     return render_template("pmaze.html")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()

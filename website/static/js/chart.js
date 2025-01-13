@@ -52,4 +52,3 @@ eventSource.onmessage = function(event) {
     // Manually update the chart when new data is received
     speedChart.update();
 };
-
