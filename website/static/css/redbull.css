@@ -171,15 +171,38 @@ p {
 }
 
 .middle-section {
-  background-color: pink;
-  flex: 1;
-  margin-left: 70px;
-  margin-right: 35px;
-  max-width: 500px;
-  justify-content: space-between;
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  justify-content: center; /* Center horizontally */
+  align-items: center; /* Center vertically */
+  flex: 1; /* Take up remaining space for proper centering */
+}
+
+.contact-button {
+  display: flex; /* Treat the button as a flex container */
+  justify-content: center; /* Center text horizontally */
+  align-items: center; /* Center text vertically */
+  padding: 10px 20px; /* Add padding for a larger clickable area */
+  background-color: rgb(6, 6, 88); /* Set a primary background color */
+  color: white; /* Set text color to white for contrast */
+  font-size: 14px; /* Slightly smaller, more subtle font size */
+  font-weight: 500; /* Medium font weight for clean look */
+  border: none; /* Remove borders for simplicity */
+  border-radius: 6px; /* Add slightly rounded corners */
+  text-decoration: none; /* Remove underline from link */
+  text-align: center; /* Ensure text stays centered */
+  cursor: pointer; /* Add pointer cursor on hover */
+  transition: background-color 0.3s ease; /* Smooth hover effect */
+  
+}
+
+.contact-button:hover {
+  background-color: white; /* Change background to white on hover */
+  color: rgb(6, 6, 88); /* Change text color to the primary color */
+  text-decoration: none;
+}
+
+.contact-link{
+  text-decoration: none;
 }
 
 .right-section{
