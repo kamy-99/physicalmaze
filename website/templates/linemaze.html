@@ -22,7 +22,7 @@
     </a>
   </div>
     <div class="right-section">
-      <a href="https://www.youtube.com/" target="_blank" class="youtube-link">
+      <a href="https://www.youtube.com/watch?v=GzEEoDOMi7s" target="_blank" class="youtube-link">
         <button class="youtube-button">
           <img src="/static/img/youtube-logo.svg" class="youtube-logo" alt="YouTube">
         </button>
@@ -41,29 +41,29 @@
     <div class="status-grid">
       <div class="status-box">
         Current Speed
-        <span id="speed">Loading...</span> <!-- Example value -->
+        <span id="speed">Loading...</span>
       </div>
       <div class="status-box">
         Direction
-        <span id="action">Loading...</span> <!-- Example value -->
+        <span id="action">Loading...</span>
       </div>
       <div class="status-box">
         Left Rotation
-        <span id="lrotation">Loading...</span> <!-- Example value -->
+        <span id="lrotation">Loading...</span>
       </div>
       <div class="status-box">
         Right Rotation
-        <span id="rrotation">Loading...</span> <!-- Example value -->
+        <span id="rrotation">Loading...</span>
+      </div>
+      <div class="status-box">
+        Sonar
+        <span id="sonar">Loading...</span>
       </div>
     </div>
   </div>
-  <canvas id="speedChart" width="800" height="400"></canvas>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@latest/dist/chartjs-plugin-streaming.min.js"></script>
-  <script type="module" src="/static/js/chart.js"></script>
 
-  <script>// Function to update Mort's speed visualization
-    async function updateMortVisualization() {
+  <script>// Function to update speed visualization
+    async function updateVisualization() { // thank you lennon for this code
         try {
             const response = await fetch('/api/data');
             const data = await response.json();
@@ -99,22 +99,21 @@
     }
 
     // Call the function to load the initial value
-    updateMortVisualization();
+    updateVisualization();
 
     // Refresh data every 1 second (optional)
-    setInterval(updateMortVisualization, 1000);
+    setInterval(updateVisualization, 1000);
 </script>
   <script>
     const eventSource1 = new EventSource('/stream');
     eventSource1.onmessage = function(event) {
         const data = JSON.parse(event.data); // get the data
-        speedChart.data.datasets[0].data.push(data.speed);
-        speedChart.update();
 
         document.getElementById('speed').textContent = data.speed;
         document.getElementById('lrotation').textContent = data.lrotation;
         document.getElementById('rrotation').textContent = data.rrotation;
         document.getElementById('action').textContent = data.action;
+        document.getElementById('sonar').textContent = data.sonar;
     };
 </script>
 </body>

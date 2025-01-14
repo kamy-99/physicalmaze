@@ -22,7 +22,7 @@
       </a>
     </div>
     <div class="right-section">
-      <a href="https://www.youtube.com/" target="_blank" class="youtube-link">
+      <a href="https://www.youtube.com/watch?v=GzEEoDOMi7s" target="_blank" class="youtube-link">
         <button class="youtube-button">
           <img src="/static/img/youtube-logo.svg" class="youtube-logo" alt="YouTube">
         </button>
@@ -30,21 +30,92 @@
     </div>
   </div>
 
+  <div class="speed-meter-container">
+    <div class="speed-meter">
+        <div class="speed-fill" id="speedFill"></div>
+        <div class="center" id="speedValue">0</div>
+    </div>
+  </div>
+
   <div class="content">
     <div class="status-grid">
       <div class="status-box">
         Current Speed
-        <span id="current-speed">50 km/h</span> <!-- Example value -->
+        <span id="speed">Loading...</span>
       </div>
       <div class="status-box">
         Direction
-        <span id="direction">Forward</span> <!-- Example value -->
+        <span id="action">Loading...</span>
       </div>
       <div class="status-box">
-        Active
-        <span id="active-status">Yes</span> <!-- Example value -->
+        Left Rotation
+        <span id="lrotation">Loading...</span>
+      </div>
+      <div class="status-box">
+        Right Rotation
+        <span id="rrotation">Loading...</span>
+      </div>
+      <div class="status-box">
+        Sonar
+        <span id="sonar">Loading...</span>
       </div>
     </div>
   </div>
+
+  <script>// Function to update speed visualization
+    async function updateVisualization() { // thank you lennon for this code
+        try {
+            const response = await fetch('/api/data');
+            const data = await response.json();
+
+            console.log("Fetched data:", data); // Debugging line
+
+            if (data.speed !== undefined) {
+                const speed = data.speed; // Use the 'speed' property from the response
+                const maxSpeed = 255; // Max speed value is 255
+
+                // Calculate rotation degree based on speed (0 to 255)
+                const rotationDegree = (speed / maxSpeed) * 180;
+
+                // Set the speed fill to rotate accordingly
+                const speedFill = document.getElementById('speedFill');
+                speedFill.style.transform = `rotate(${rotationDegree}deg)`;
+
+                // Set the color (green for high speed, red for low speed)
+                const red = Math.min(255, Math.floor((speed / maxSpeed) * 255));
+                const green = Math.min(255, Math.floor((1 - speed / maxSpeed) * 255));
+                const color = `rgb(${red}, ${green}, 0)`; // RGB color based on speed
+                speedFill.style.backgroundColor = color;
+
+                // Set the speed value at the center of the meter
+                const speedValue = document.getElementById('speedValue');
+                speedValue.textContent = speed.toFixed(0); // Show speed rounded to nearest integer
+            } else {
+                console.error("Speed data not found in API response.");
+            }
+        } catch (error) {
+            console.error("Error fetching data from API:", error);
+        }
+    }
+
+    // Call the function to load the initial value
+    updateVisualization();
+
+    // Refresh data every 1 second (optional)
+    setInterval(updateVisualization, 1000);
+</script>
+  <script>
+    const eventSource1 = new EventSource('/stream');
+    eventSource1.onmessage = function(event) {
+        const data = JSON.parse(event.data); // get the data
+
+        document.getElementById('speed').textContent = data.speed;
+        document.getElementById('lrotation').textContent = data.lrotation;
+        document.getElementById('rrotation').textContent = data.rrotation;
+        document.getElementById('action').textContent = data.action;
+        document.getElementById('sonar').textContent = data.sonar;
+    };
+</script>
+
 </body>
 </html>

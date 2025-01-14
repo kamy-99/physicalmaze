@@ -291,7 +291,7 @@ code for the bot web page specifically
   width: 250px;
   height: 125px; /* Half-circle */
   border-radius: 125px 125px 0 0;
-  background: #e0e0e0;
+  background:#e0e0e0;/* #4caf50; */
   overflow: hidden;
   margin-top: 20px;
   border: 2px solid #ccc;

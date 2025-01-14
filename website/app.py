@@ -51,7 +51,7 @@ def receive_data():
                     'time': data['created_at']}), 200
 
         # Default response if no data is found
-        return jsonify({'speed': 150}), 200
+        return jsonify({'speed': 160}), 200
     
 # this is the function that is important for the real time data
 @app.route('/stream')
