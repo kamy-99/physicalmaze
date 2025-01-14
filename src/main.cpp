@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <Adafruit_NeoPixel.h>
 
 #define MOTOR_A1 11 //11 B
 #define MOTOR_A2 12 //12 F DIGITAL WAS 10
@@ -9,6 +10,9 @@
 #define DVALUE 10 // debounce value in ms
 #define PIVALUE 3.141592653589793238462643383279502884197 // 39 digits or so
 #define GRIPPER 10
+#define LEDPIN 13
+int NUMPIXELS = 4;
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_RGB + NEO_KHZ800);
 
 
 const int trigPin = 7;  
@@ -45,7 +49,7 @@ int Low_Threshold[8];
 
 
 // Sensor states
-String sensorStates[8]; // Holds the current state for each sensor
+int sensorStates[8]; // Holds the current state for each sensor
 int sensorValues[8];
 // Define the weights for each sensor (based on their distance from the center)
 int sensorWeights[] = {-7, -5, -3, 1, 1, 3, 5, 7};  // A0 has weight -7, A7 has weight +7
@@ -53,7 +57,7 @@ int sensorWeights[] = {-7, -5, -3, 1, 1, 3, 5, 7};  // A0 has weight -7, A7 has 
 int line_steeringError = 0;
 
 // Add an array to store the previous state of each sensor
-String previousSensorStates[8];
+int previousSensorStates[8];
 
 #define AVERAGE_WINDOW 1  // Number of readings to average
 int recentReadings[8][AVERAGE_WINDOW];
@@ -98,6 +102,14 @@ void calibrateSensors();
 void updateLineCalibration();
 void Initializing();
 void line_adjustSteering(int line_steeringError);
+void normal_Pixel();
+void braking_Pixel();
+void right_Pixel();
+void left_Pixel();
+void back_Pixel();
+
+
+
 
 int RRotation = 0;
 int LRotation = 0;
@@ -120,6 +132,7 @@ void setup() {
   pinMode(echoPin2, INPUT);
   pinMode(ROT_R1, INPUT_PULLUP);
   pinMode(ROT_R2, INPUT_PULLUP);
+  pinMode(LEDPIN, OUTPUT);
   attachInterrupt(digitalPinToInterrupt(ROT_R1), updaterotation_R1, CHANGE);
   attachInterrupt(digitalPinToInterrupt(ROT_R2), updaterotation_R2, CHANGE);
 }
@@ -127,41 +140,14 @@ void setup() {
 float WheelC = 6.5*PIVALUE; // wheel circumference in cm 2*r*pi ~20.5cm I am not using our 1 library for getting near perfect PI
 
 void loop() {
-  /*
-  for now the logic should look something like this - this is in a perfect world
-  also this might not work since it might be a bit "choppy" as it moves
+  grabCone();
+  lineCalibration();         // Update sensor values
+  determineStates();         // Determine black/white states
+  line_steerError();         // Calculate steering error
 
-  update sensor 1 (looking right)
-  update sensor 2 (looking forward)
-  if (there's the finish) { priority #1
-    put down item
-    back off
-    send done signal
-    stop
-  } else {
-    if (on the right >5cm (-> there's a path)) { priority #2
-      rotate right
-      go forward X cm  
-    } else if (nothing forward) { priority # 3
-      go forward
-    } else if (wall in front && wall in right) {
-      rotate left
-    } else {
-      go forward
-    }
-  }
-  */
-//  updateSensor1();
-//  updateSensor2();
-//  steering_Error();
- //adjustSteering(steeringError);
-//  for (int i =0; i < 8; i++)
-//    {
-//     if (sensorStates[i] == "black")
-//     {
-//       line_steeringError += sensorWeights[i];  // Add weighted sensor value to the total error
-//     }
-//    }
+    // Use the steering error to adjust motor speeds
+  line_adjustSteering(line_steeringError);
+
 
 //   gripper(0);
 //   steering_Error();
@@ -172,40 +158,40 @@ void loop() {
 //   line_adjustSteering(line_steeringError);
 //   //adjustSteering(steeringError);
 //   }
-  steering_Error();
-  flagCheck();
-  grabCone();
+  // steering_Error();
+  // flagCheck();
+  // grabCone();
   // updateLineCalibration();
   // determineStates();
-  int line_steeringError = 0;
-    for (int i =0; i < 8; i++)
-   {
-    if (sensorStates[i] == "black")
-    {
-      line_steeringError += sensorWeights[i];  // Add weighted sensor value to the total error
-    }
-   }
+  // int line_steeringError = 0;
+  //   for (int i =0; i < 8; i++)
+  //  {
+  //   if (sensorStates[i] == "black")
+  //   {
+  //     line_steeringError += sensorWeights[i];  // Add weighted sensor value to the total error
+  //   }
+  //  }
   //  line_adjustSteering(line_steeringError);
-   while (line_steeringError == 0)
-  {
-    // Apply motor speeds
-    steering_Error();
-    adjustSteering(steeringError);
-    Serial.println("line_steeringError: ");
-    Serial.print(line_steeringError);      
-  }
-  line_adjustSteering(line_steeringError);
+  //  while (line_steeringError == 0)
+  // {
+  //   // Apply motor speeds
+  //   steering_Error();
+  //   adjustSteering(steeringError);
+  //   Serial.println("line_steeringError: ");
+  //   Serial.print(line_steeringError);      
+  // }
+  // line_adjustSteering(line_steeringError);
   // if(flagUp == true)
   // {
   // line_adjustSteering(line_steeringError);
   // //adjustSteering(steeringError);
   // }
-    for (int i = 0; i < 8; i++) {
-    Serial.print("Sensor ");
-    Serial.print(i);
-    Serial.print(": ");
-    Serial.println(sensorValues[i]);
-}
+//     for (int i = 0; i < 8; i++) {
+//     Serial.print("Sensor ");
+//     Serial.print(i);
+//     Serial.print(": ");
+//     Serial.println(sensorValues[i]);
+// }
 }
 
 // updates
@@ -291,6 +277,7 @@ void forward(int distance) {
   interrupts();
 
   while (RRotation <= rotations && LRotation <= rotations) {
+    normal_Pixel();
     digitalWrite(MOTOR_A2, HIGH); // Set left motor forward
     digitalWrite(MOTOR_B2, HIGH); // Set right motor forward
     analogWrite(MOTOR_A1, 60);    // Speed for left motor
@@ -318,6 +305,7 @@ void backwards(int distance) { // should be done
   interrupts();
 
   while (RRotation <= rotations && LRotation <= rotations) {
+    back_Pixel();
     digitalWrite(MOTOR_A2, LOW);
     digitalWrite(MOTOR_B2, LOW);
     analogWrite(MOTOR_A1, 255);
@@ -744,43 +732,17 @@ void adjustSteering(int steeringError)
   }
   if(steeringError >= 10)
   {
-    // updateSensor1();
-    // updateSensor2();
+    right_Pixel();
     digitalWrite(MOTOR_A2, HIGH);
     digitalWrite(MOTOR_B2, HIGH);
-    analogWrite(MOTOR_A1, 30);
+    analogWrite(MOTOR_A1, 20);
     analogWrite(MOTOR_B1, 160);
-    // steering_Error();
-    // if(forward_dis > 20)
-    // {
-    //   forward(30);
-    //   // steering_Error();
-    // }
-    // //forward(20);
   }
-  // else if(steeringError > 40)
-  // {
-  //   forward(10);
-  //   rotate_r();
-  //   delay(1000);
-  //   steering_Error();
-  //   if(forward_dis > 20)
-  //   {
-  //     forward(30);
-  //     // steering_Error();
-  //     return;
-  //   }
-  //   else
-  //   {
-  //     rotate_l();
-  //     // steering_Error();
-  //     return;
-  //   }
-  // }
   // Adjust movement based on the steering error
-  if(steeringError < 2 && steeringError > -1 && steeringError != 0)
+  if(steeringError < 2 && steeringError >= -1 && steeringError != 0)
   {
     // Robot is aligned, move straight
+    normal_Pixel();
     digitalWrite(MOTOR_A2, HIGH); // Left motor forward
     analogWrite(MOTOR_A1, 60);      // Ensure left motor doesn't go backward
     analogWrite(MOTOR_B1, 60); // Right motor forward
@@ -790,6 +752,7 @@ void adjustSteering(int steeringError)
   else if (steeringError >= 2 && steeringError <= 5)
   {
     // Robot needs to turn right
+    right_Pixel();
     int leftSpeed = baseSpeed + PID_output;  // Increase speed for left motor
     int rightSpeed = baseSpeed - PID_output; // Reduce speed for right motor
 
@@ -809,6 +772,7 @@ void adjustSteering(int steeringError)
   }
   else if(steeringError > 5 && steeringError < 10)
   {
+    right_Pixel();
     digitalWrite(MOTOR_A2, HIGH);
     digitalWrite(MOTOR_B2, HIGH);
     analogWrite(MOTOR_A1, 60);
@@ -818,6 +782,7 @@ void adjustSteering(int steeringError)
   else if (steeringError == 0)
   {
     // Apply motor speeds
+    normal_Pixel();
     digitalWrite(MOTOR_A2, HIGH); 
     analogWrite(MOTOR_A1, 60);      
     analogWrite(MOTOR_B1, 60); 
@@ -835,6 +800,7 @@ void adjustSteering(int steeringError)
     rightSpeed = constrain(rightSpeed, 0, 255);
 
     // Apply motor speeds
+    left_Pixel();
     digitalWrite(MOTOR_A2, HIGH); // Left motor forward
     analogWrite(MOTOR_A1, 85);      // Ensure left motor doesn't go backward
     analogWrite(MOTOR_B1, 60); // Right motor forward
@@ -843,6 +809,7 @@ void adjustSteering(int steeringError)
   }
   else if(steeringError < -4)
   {
+    left_Pixel();
     digitalWrite(MOTOR_A2, HIGH);
     digitalWrite(MOTOR_B2, HIGH);
     analogWrite(MOTOR_A1, 95);
@@ -1092,9 +1059,9 @@ void lineCalibration() {
 void determineStates() {
   for (int i = 0; i < 8; i++) {
     if (sensorValues[i] >= High_Threshold[i]) {
-      sensorStates[i] = "black";
+      sensorStates[i] = 1;// black
     } else if (sensorValues[i] <= Low_Threshold[i]) {
-      sensorStates[i] = "white";
+      sensorStates[i] = 0;// white
     } else {
       // In the gap between thresholds, maintain the previous state
       sensorStates[i] = previousSensorStates[i];
@@ -1108,15 +1075,25 @@ void determineStates() {
 void line_steerError()
 {
    // Variable to store the calculated error for steering
-
+    line_steeringError = 0; // Reset error
+    int totalWeight = 0;    // Track the number of active (black) sensors
    // Read all sensor values and calculate the weighted sum (steering error)
    for (int i =0; i < 8; i++)
    {
-    if (sensorStates[i] == "black")
+    if (sensorStates[i] == 1)// check for black
     {
       line_steeringError += sensorWeights[i];  // Add weighted sensor value to the total error
+      totalWeight++;
     }
    }
+   // Normalize error if any black sensors are active
+    if (totalWeight > 0) 
+    {
+        line_steeringError /= totalWeight;
+    }
+    // Debug output
+    Serial.print("Steering Error: ");
+    Serial.println(line_steeringError);
 }
 
 void dropCone()
@@ -1236,8 +1213,8 @@ void line_adjustSteering(int line_steeringError)
     // Apply motor speeds
     steering_Error();
     adjustSteering(steeringError);
-    Serial.print("line_steeringError: ");
-    Serial.println(line_steeringError);      
+    // Serial.print("line_steeringError: ");
+    // Serial.println(line_steeringError);      
   }
   // Calculate PID output based on the steering error
   float PID_output = PID(line_steeringError);
@@ -1251,13 +1228,13 @@ void line_adjustSteering(int line_steeringError)
   }
 
   // Adjust movement based on the steering error
-  if (line_steeringError <= 4 && line_steeringError >= -4 && line_steeringError != 0 && line_steeringError != 2) // 7, -7 
+  if (line_steeringError <= 4 && line_steeringError >= -4 && line_steeringError != 0) // 7, -7 
   {
     // Robot is aligned, move straight
-    analogWrite(MOTOR_A1, 60); // Left motor forward
-    digitalWrite(MOTOR_A2, HIGH);      // Ensure left motor doesn't go backward
-    analogWrite(MOTOR_B1, 60); // Right motor forward
-    digitalWrite(MOTOR_B2, HIGH);      // Ensure right motor doesn't go backward
+    digitalWrite(MOTOR_A2, HIGH); 
+    analogWrite(MOTOR_A1, 60);      
+    analogWrite(MOTOR_B1, 60); 
+    digitalWrite(MOTOR_B2, HIGH);
   }
   else if (line_steeringError <= -6) // -11
   {
@@ -1270,9 +1247,9 @@ void line_adjustSteering(int line_steeringError)
     rightSpeed = constrain(rightSpeed, 0, 255);
 
     // Apply motor speeds
-    analogWrite(MOTOR_A1, 90); // Left motor forward
+    analogWrite(MOTOR_A1, 130); // Left motor forward
     digitalWrite(MOTOR_A2, HIGH);      // Ensure left motor doesn't go backward
-    analogWrite(MOTOR_B1, 70); // Right motor forward
+    analogWrite(MOTOR_B1, 50); // Right motor forward
     digitalWrite(MOTOR_B2, HIGH);       // Ensure right motor doesn't go backward
   }
   else if (line_steeringError >= 6) // 11
@@ -1286,18 +1263,18 @@ void line_adjustSteering(int line_steeringError)
     rightSpeed = constrain(rightSpeed, 0, 255);
 
     // Apply motor speeds
-    analogWrite(MOTOR_A1, 70); // Left motor forward
+    analogWrite(MOTOR_A1, 50); // Left motor forward
     digitalWrite(MOTOR_A2, HIGH);      // Ensure left motor doesn't go backward
-    analogWrite(MOTOR_B1, 90); // Right motor forward
+    analogWrite(MOTOR_B1, 130); // Right motor forward
     digitalWrite(MOTOR_B2, HIGH);       // Ensure right motor doesn't go backward
 
   }
   // Optional: Debugging output
-  Serial.print("Steering Error: ");
-  Serial.print(line_steeringError);
+  // Serial.print("Steering Error: ");
+  // Serial.print(line_steeringError);
   // Serial.print(" | PID Output: ");
   // Serial.print(PID_output);
-    if(line_steeringError == 2 )
+    if(sensorStates[0] == 1 && sensorStates[1] == 1 && sensorStates[2] == 1 && sensorStates[3] == 1 && sensorStates[4] == 1 && sensorStates[5] == 1 && sensorStates[6] == 1 && sensorStates[7] == 1 )
   {
     stop_();
     for(int i = 0; i <10; i++ )
@@ -1308,4 +1285,98 @@ void line_adjustSteering(int line_steeringError)
     stop_();
     delay(10000);
   }
+}
+
+void normal_Pixel()
+{
+  //pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
+  pixels.clear();
+  pixels.setPixelColor(0, pixels.Color(75,0,0)); // red at 60 left back
+  pixels.setPixelColor(1, pixels.Color(75,0,0)); // red at 60 right back
+  pixels.setPixelColor(2, pixels.Color(255, 255, 75)); // white ish headlights 100 right front
+  pixels.setPixelColor(3, pixels.Color(255, 255, 75)); // white ish headlights 100 left front
+  pixels.show();
+}
+
+void braking_Pixel()
+{
+  //pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
+  pixels.clear();
+  pixels.setPixelColor(0, pixels.Color(255,0,0)); // red at 100 left back
+  pixels.setPixelColor(1, pixels.Color(255,0,0)); // red at 100 right back
+  pixels.setPixelColor(2, pixels.Color(255, 255, 75)); // white ish headlights 100 right front
+  pixels.setPixelColor(3, pixels.Color(255, 255, 75)); // white ish headlights 100 left front
+  pixels.show();
+}
+
+  void right_Pixel()
+  {
+    static bool lightOn = false;
+    static unsigned long timer = millis();
+
+    if ((millis() - timer) > 500)
+    {
+      if(lightOn == true)
+      {
+        pixels.clear();
+        pixels.setPixelColor(0, pixels.Color(75, 0, 0));      // Red at 60 left back
+        pixels.setPixelColor(1, pixels.Color(255, 100, 0));   // Orange right
+        pixels.setPixelColor(2, pixels.Color(255, 100, 0));   // Orange right
+        pixels.setPixelColor(3, pixels.Color(255, 255, 75));  // White-ish headlights left front
+        pixels.show();
+      }
+      else
+      {
+        pixels.clear();
+        pixels.setPixelColor(0, pixels.Color(75, 0, 0));      // Red at 60 left back
+        pixels.setPixelColor(1, pixels.Color(0,0,0));         // off right
+        pixels.setPixelColor(2, pixels.Color(0,0,0));         // off right
+        pixels.setPixelColor(3, pixels.Color(255, 255, 75));  // White-ish headlights left front
+        pixels.show(); // Turn off the orange pixels 
+      }
+      lightOn = !lightOn;
+      timer = millis();
+    }
+  }
+
+
+  void left_Pixel()
+  {
+    static bool lightOn = false;
+    static unsigned long timer = millis();
+
+    if ((millis() - timer) > 500)
+    {
+      if(lightOn == true)
+      {
+        pixels.clear();
+        pixels.setPixelColor(0, pixels.Color(255, 100, 0));   // Orange left back
+        pixels.setPixelColor(1, pixels.Color(75, 0, 0));      // Red at 60 right back
+        pixels.setPixelColor(2, pixels.Color(255, 255, 75));  // White-ish headlights right front
+        pixels.setPixelColor(3, pixels.Color(255, 100, 0));   // Orange left front
+        pixels.show();
+      }
+      else
+      {
+        pixels.clear();
+        pixels.setPixelColor(1, pixels.Color(75, 0, 0));      // Red at 60 right back
+        pixels.setPixelColor(0, pixels.Color(0,0,0));         // off left back
+        pixels.setPixelColor(3, pixels.Color(0,0,0));         // off left front
+        pixels.setPixelColor(2, pixels.Color(255, 255, 75));  // White-ish headlights right front
+        pixels.show(); // Turn off the orange pixels
+      }
+      lightOn = !lightOn;
+      timer = millis();
+    }
+  }
+
+
+void back_Pixel()
+{
+  pixels.clear();
+  pixels.setPixelColor(0, pixels.Color(255,0,0)); // red at 100 left back
+  pixels.setPixelColor(1, pixels.Color(255,255,255)); // red at 100 right back
+  pixels.setPixelColor(2, pixels.Color(255, 255, 75)); // white ish headlights 100 right front
+  pixels.setPixelColor(3, pixels.Color(255, 255, 75)); // white ish headlights 100 left front
+  pixels.show();
 }
