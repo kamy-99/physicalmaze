@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 
+#define SLAVE_ID 3 // our slave_id
 #define MOTOR_A1 11 //11 B
 #define MOTOR_A2 12 //12 F DIGITAL WAS 10
 #define MOTOR_B1 9  //9 B
@@ -14,6 +15,10 @@
 int NUMPIXELS = 4;
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_RGB + NEO_KHZ800);
 
+int speed = 0;
+String action = ""; // currect movement
+int c_sonar = int(forward_dis); // sonar in integer for communication
+bool Finish = false; // ending
 
 const int trigPin = 7;  
 const int echoPin = 8; 
@@ -108,9 +113,6 @@ void right_Pixel();
 void left_Pixel();
 void back_Pixel();
 
-
-
-
 int RRotation = 0;
 int LRotation = 0;
 
@@ -147,7 +149,7 @@ void loop() {
 
     // Use the steering error to adjust motor speeds
   line_adjustSteering(line_steeringError);
-
+  communication(speed, LRotation, RRotation, action, c_sonar);
 
 //   gripper(0);
 //   steering_Error();
@@ -194,12 +196,31 @@ void loop() {
 // }
 }
 
+void communication(int speed, int lrotation, int rrotation, String action, int sonar) {
+  if (Serial.available()) {
+    String message = Serial.readStringUntil('\n');
+    if (message.length() >= 2 && message[0] == SLAVE_ID + '0' && message[1] == '?' && Finished == true) { // Finished should be just a true or false after putting the obj down
+      Serial.print("DONE" + SLAVE_ID)
+    } else
+    if (message.length() >= 2 && message[0] == SLAVE_ID + '0' && message[1] == '?') {
+      String data = "sn:" + String(SLAVE_ID) + 
+                    ",s:" + String(speed) + 
+                    ",lr:" + String(lrotation) + 
+                    ",rr:" + String(rrotation) + 
+                    ",a:" + action +
+                    ",so:" + String(sonar);
+
+      Serial.print(data);
+    } 
+  }
+}
+
 // updates
 void updateSensor1() { // right sonar (this gets n1 because it's the bigger priority)
   static unsigned long timer;
   if (millis() > timer) {
     sonar1();
-    Serial.println("Sonar1 update");
+    //Serial.println("Sonar1 update");
     timer = millis() + 250; // update every 0.25s can change
   }
   
@@ -209,7 +230,7 @@ void updateSensor2() { // forward sonar
   static unsigned long timer = 0;
   if (millis() > timer) {
     sonar2();
-    Serial.println("Sonar2 update");
+    //Serial.println("Sonar2 update");
     timer = millis() + 250; // update every 0.25s can change
   }
 }
@@ -218,7 +239,7 @@ void updateKeepDistance() { // this will try to keep the distance from the wall 
   static unsigned long timer;
   if (millis() > timer) {
     keepDistance();
-    Serial.println("keepDistance update");
+    //Serial.println("keepDistance update");
     timer = millis() + 250; // update every 0.25s can change could be
   }
 }
@@ -227,7 +248,7 @@ void updateGameLogic() { // update gamelogic
   static unsigned long timer;
   if (millis() > timer) {
     gameLogic();
-    Serial.println("gameLogic update");
+    //Serial.println("gameLogic update");
     timer = millis() + 250; // update every 0.25s can change could be
   }
 }
@@ -282,6 +303,8 @@ void forward(int distance) {
     digitalWrite(MOTOR_B2, HIGH); // Set right motor forward
     analogWrite(MOTOR_A1, 60);    // Speed for left motor
     analogWrite(MOTOR_B1, 60);    // Speed for right motor
+    action = "forward";
+    speed = 195;
     failSafe();
   }
 
@@ -310,6 +333,8 @@ void backwards(int distance) { // should be done
     digitalWrite(MOTOR_B2, LOW);
     analogWrite(MOTOR_A1, 255);
     analogWrite(MOTOR_B1, 255);
+    action = "backwards";
+    speed = 255;
   }
   stop_();
 }
@@ -446,6 +471,8 @@ void rotate_l() { // should be done
 
     analogWrite(MOTOR_B1, 25);
     digitalWrite(MOTOR_A2, LOW);
+    action = "rotate left";
+    speed = 242;
     failSafe();
   }
   analogWrite(MOTOR_A1, 25);
@@ -480,7 +507,7 @@ void failSafe() {
     lastRRotation = RRotation;   // Update the last known rotations
     lastLRotation = LRotation;
   } else if (millis() - lastRotationTime > 1000) { // If no change for 2 seconds
-    Serial.println("FailSafe Triggered: No movement detected!");
+    //Serial.println("FailSafe Triggered: No movement detected!");
     backwards(15); // Move backward as a fail-safe response
     lastRotationTime = millis(); // Reset the timer after moving backward
   }
@@ -507,8 +534,8 @@ void sonar1() // forward sonar
     {
       forward_dis = distance[1];
     }
-    Serial.print("forward Distance: ");
-    Serial.println(forward_dis);
+    //Serial.print("forward Distance: ");
+    //Serial.println(forward_dis);
 }
 
 void sonar2() // right sonar
@@ -539,13 +566,13 @@ void gameLogic() {
   updateSensor2();
   if(right_dis > 20)
   {
-    Serial.println("rotate right and forward");
+    //Serial.println("rotate right and forward");
     turn_r();
     updateSensor1();
     updateSensor2();
     if(forward_dis > 15)
     {
-      Serial.println("forward after right");
+      //Serial.println("forward after right");
       forward(15);
       updateSensor1();
       updateSensor2();
@@ -553,14 +580,14 @@ void gameLogic() {
   }
   else if(forward_dis > 15)
   {
-    Serial.println("forward");
+    //Serial.println("forward");
     forward(15);
     updateSensor1();
     updateSensor2();
   }
   else if(forward_dis < 15 && right_dis < 15)
   {
-    Serial.println("rotate LEFT");
+    //Serial.println("rotate LEFT");
     updateSensor1();
     updateSensor2();
     if(forward_dis < 13 && right_dis < 13)
@@ -571,7 +598,7 @@ void gameLogic() {
     }
     if(forward_dis > 15)
     {
-      Serial.print("forward");
+      //Serial.print("forward");
       forward(15);
       updateSensor1();
       updateSensor2();
@@ -580,7 +607,7 @@ void gameLogic() {
 
   if(forward_dis < 15)
   {
-    Serial.print("back");
+    //Serial.print("back");
     backwards(15);
     updateSensor1();
     updateSensor2();
@@ -637,34 +664,6 @@ void logictest()
   }
 }
 
-// int calculateRotationCount(int degrees) {
-//     float wheelCircumference = PIVALUE * 6.5;  // Wheel diameter is 6.5 cm
-//     float robotWidth = 15.0;  // Distance between wheels in cm
-//     float rotationCircumference = PIVALUE * robotWidth;
-//     float distanceToTravel = (degrees / 360.0) * rotationCircumference;
-//     return round((distanceToTravel / wheelCircumference) * 40);  // 40 encoder ticks per wheel rotation
-// }
-
-// void preciseRotate_r(int degrees) {
-//     int targetRotation = calculateRotationCount(degrees);
-//     int slowdownThreshold = targetRotation * 0.8;
-    
-//     noInterrupts();
-//     RRotation = 0;
-//     LRotation = 0;
-//     interrupts();
-    
-//     while (RRotation < targetRotation && LRotation < targetRotation) {
-//         int speed = (RRotation < slowdownThreshold) ? 50 : 25;
-        
-//         digitalWrite(MOTOR_A2, HIGH);  // Right motor forward
-//         digitalWrite(MOTOR_B2, LOW);   // Left motor backward
-//         analogWrite(MOTOR_A1, speed);
-//         analogWrite(MOTOR_B1, speed);
-//     }
-    
-//     stop_();
-// }
 int PID(int steeringError)
 {
    // Proportional term
@@ -747,6 +746,8 @@ void adjustSteering(int steeringError)
     analogWrite(MOTOR_A1, 60);      // Ensure left motor doesn't go backward
     analogWrite(MOTOR_B1, 60); // Right motor forward
     digitalWrite(MOTOR_B2, HIGH);      // Ensure right motor doesn't go backward
+    action = "forward";
+    speed = 195;
     // steering_Error();
   }
   else if (steeringError >= 2 && steeringError <= 5)
@@ -765,6 +766,8 @@ void adjustSteering(int steeringError)
     analogWrite(MOTOR_A1, 60);      // Ensure left motor doesn't go backward
     analogWrite(MOTOR_B1, 85); // Right motor forward
     digitalWrite(MOTOR_B2, HIGH);       // Ensure right motor doesn't go backward
+    action = "turn right";
+    speed = 182;
     // steering_Error();
     // Serial.print("leftspeed: ");
     // Serial.println(leftSpeed);
@@ -777,6 +780,8 @@ void adjustSteering(int steeringError)
     digitalWrite(MOTOR_B2, HIGH);
     analogWrite(MOTOR_A1, 60);
     analogWrite(MOTOR_B1, 95);
+    action = "turn right";
+    speed = 177;
     // steering_Error();
   }
   else if (steeringError == 0)
@@ -786,8 +791,10 @@ void adjustSteering(int steeringError)
     digitalWrite(MOTOR_A2, HIGH); 
     analogWrite(MOTOR_A1, 60);      
     analogWrite(MOTOR_B1, 60); 
-    digitalWrite(MOTOR_B2, HIGH); 
-    // steering_Error();      
+    digitalWrite(MOTOR_B2, HIGH);
+    action = "straight";
+    speed = 195;
+    // steering_Error();
   }
   else if (steeringError <= -2 && steeringError >= -4)
   {
@@ -805,6 +812,8 @@ void adjustSteering(int steeringError)
     analogWrite(MOTOR_A1, 85);      // Ensure left motor doesn't go backward
     analogWrite(MOTOR_B1, 60); // Right motor forward
     digitalWrite(MOTOR_B2, HIGH);       // Ensure right motor doesn't go backward
+    action = "turn left";
+    speed = 182;
     // steering_Error();
   }
   else if(steeringError < -4)
@@ -814,6 +823,8 @@ void adjustSteering(int steeringError)
     digitalWrite(MOTOR_B2, HIGH);
     analogWrite(MOTOR_A1, 95);
     analogWrite(MOTOR_B1, 60);
+    action = "turn left";
+    speed = 177;
     // steering_Error();
   }
 
@@ -861,13 +872,13 @@ void flagCheck()
 {
   if(flagUp == false)
   {
-    Serial.println("Stuck before");
+    //Serial.println("Stuck before");
     // if (distance[0] > 0 && distance[1] > 0 && abs(distance[0] - distance[1]) < 20)
     if (forward_dis > 20)
       {
-        Serial.println("Does it run");
+        //Serial.println("Does it run");
         flagUp = true;
-        Serial.println("flagUp = true");
+        //Serial.println("flagUp = true");
       }
   }
 }
@@ -1092,8 +1103,8 @@ void line_steerError()
         line_steeringError /= totalWeight;
     }
     // Debug output
-    Serial.print("Steering Error: ");
-    Serial.println(line_steeringError);
+    //Serial.print("Steering Error: ");
+    //Serial.println(line_steeringError);
 }
 
 void dropCone()
@@ -1111,7 +1122,7 @@ void dropCone()
     }
     backwards(20);
     stop_();
-    delay(10000);
+    Finish = true;
   }
 }
 
@@ -1191,7 +1202,6 @@ void dropCone()
 //     delay(10000);
 //   }
   
-
 //   // Optional: Debugging output
 //   // Serial.print("Steering Error: ");
 //   // Serial.print(steeringError);
@@ -1235,6 +1245,8 @@ void line_adjustSteering(int line_steeringError)
     analogWrite(MOTOR_A1, 60);      
     analogWrite(MOTOR_B1, 60); 
     digitalWrite(MOTOR_B2, HIGH);
+    action = "forward";
+    speed = 195;
   }
   else if (line_steeringError <= -6) // -11
   {
@@ -1251,6 +1263,8 @@ void line_adjustSteering(int line_steeringError)
     digitalWrite(MOTOR_A2, HIGH);      // Ensure left motor doesn't go backward
     analogWrite(MOTOR_B1, 50); // Right motor forward
     digitalWrite(MOTOR_B2, HIGH);       // Ensure right motor doesn't go backward
+    action = "turn left";
+    speed = 175;
   }
   else if (line_steeringError >= 6) // 11
   {
@@ -1267,6 +1281,8 @@ void line_adjustSteering(int line_steeringError)
     digitalWrite(MOTOR_A2, HIGH);      // Ensure left motor doesn't go backward
     analogWrite(MOTOR_B1, 130); // Right motor forward
     digitalWrite(MOTOR_B2, HIGH);       // Ensure right motor doesn't go backward
+    action = "turn right"
+    speed = 175;
 
   }
   // Optional: Debugging output
