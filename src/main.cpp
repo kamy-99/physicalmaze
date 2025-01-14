@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 
-#define SLAVE_ID 1 // our slave_id
+#define SLAVE_ID 3 // our slave_id
 #define MOTOR_A1 11 //11 B
 #define MOTOR_A2 12 //12 F DIGITAL WAS 10
 #define MOTOR_B1 9  //9 B
