@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 
-#define SLAVE_ID 3 // our slave_id
+#define SLAVE_ID 1 // our slave_id
 #define MOTOR_A1 11 //11 B
 #define MOTOR_A2 12 //12 F DIGITAL WAS 10
 #define MOTOR_B1 9  //9 B
@@ -14,11 +14,6 @@
 #define LEDPIN 13
 int NUMPIXELS = 4;
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LEDPIN, NEO_RGB + NEO_KHZ800);
-
-int speed = 0;
-String action = ""; // currect movement
-int c_sonar = int(forward_dis); // sonar in integer for communication
-bool Finish = false; // ending
 
 const int trigPin = 7;  
 const int echoPin = 8; 
@@ -68,6 +63,11 @@ int previousSensorStates[8];
 int recentReadings[8][AVERAGE_WINDOW];
 int readingIndex = 0;
 
+int speed = 0;
+String action = ""; // currect movement
+int c_sonar = int(forward_dis); // sonar in integer for communication
+bool Finish = false; // ending
+
 // because of platform IO
 void rotate_l();
 void rotate_r();
@@ -112,6 +112,7 @@ void braking_Pixel();
 void right_Pixel();
 void left_Pixel();
 void back_Pixel();
+void communication(int speed, int lrotation, int rrotation, String action, int sonar, bool Finished);
 
 int RRotation = 0;
 int LRotation = 0;
@@ -119,6 +120,7 @@ int LRotation = 0;
 int c1 = 0;
 int c2 = 0;
 
+bool canStart = true; // SHOULD BE FALSE!!
 
 void setup() {
   Serial.begin(9600);
@@ -142,14 +144,16 @@ void setup() {
 float WheelC = 6.5*PIVALUE; // wheel circumference in cm 2*r*pi ~20.5cm I am not using our 1 library for getting near perfect PI
 
 void loop() {
-  grabCone();
-  lineCalibration();         // Update sensor values
-  determineStates();         // Determine black/white states
-  line_steerError();         // Calculate steering error
+  if (canStart == true && Finish == false) {
+    grabCone();
+    lineCalibration();         // Update sensor values
+    determineStates();         // Determine black/white states
+    line_steerError();         // Calculate steering error
 
-    // Use the steering error to adjust motor speeds
-  line_adjustSteering(line_steeringError);
-  communication(speed, LRotation, RRotation, action, c_sonar);
+      // Use the steering error to adjust motor speeds
+    line_adjustSteering(line_steeringError);
+  }
+  communication(speed, LRotation, RRotation, action, c_sonar, Finish);
 
 //   gripper(0);
 //   steering_Error();
@@ -196,13 +200,14 @@ void loop() {
 // }
 }
 
-void communication(int speed, int lrotation, int rrotation, String action, int sonar) {
+void communication(int speed, int lrotation, int rrotation, String action, int sonar, bool Finished) {
   if (Serial.available()) {
     String message = Serial.readStringUntil('\n');
-    if (message.length() >= 2 && message[0] == SLAVE_ID + '0' && message[1] == '?' && Finished == true) { // Finished should be just a true or false after putting the obj down
-      Serial.print("DONE" + SLAVE_ID)
-    } else
-    if (message.length() >= 2 && message[0] == SLAVE_ID + '0' && message[1] == '?') {
+    if (message.length() >= 2 && message[0] == SLAVE_ID + '0' && message[1] == '?' && Finished == true) {
+      // Finished should be just a true or false after putting the obj down
+      Serial.print("DONE" + SLAVE_ID);
+    }
+    else if (message.length() >= 2 && message[0] == SLAVE_ID + '0' && message[1] == '?') {
       String data = "sn:" + String(SLAVE_ID) + 
                     ",s:" + String(speed) + 
                     ",lr:" + String(lrotation) + 
@@ -210,6 +215,7 @@ void communication(int speed, int lrotation, int rrotation, String action, int s
                     ",a:" + action +
                     ",so:" + String(sonar);
 
+      canStart = true;
       Serial.print(data);
     } 
   }
@@ -471,7 +477,7 @@ void rotate_l() { // should be done
 
     analogWrite(MOTOR_B1, 25);
     digitalWrite(MOTOR_A2, LOW);
-    action = "rotate left";
+    action = "left";
     speed = 242;
     failSafe();
   }
@@ -533,6 +539,7 @@ void sonar1() // forward sonar
     if(distance[0] > 0 && distance[1] > 0 && abs(distance[0] - distance[1]) <= 5)
     {
       forward_dis = distance[1];
+      c_sonar = int(forward_dis);
     }
     //Serial.print("forward Distance: ");
     //Serial.println(forward_dis);
@@ -736,6 +743,8 @@ void adjustSteering(int steeringError)
     digitalWrite(MOTOR_B2, HIGH);
     analogWrite(MOTOR_A1, 20);
     analogWrite(MOTOR_B1, 160);
+    action = "right";
+    speed = 165;
   }
   // Adjust movement based on the steering error
   if(steeringError < 2 && steeringError >= -1 && steeringError != 0)
@@ -766,7 +775,7 @@ void adjustSteering(int steeringError)
     analogWrite(MOTOR_A1, 60);      // Ensure left motor doesn't go backward
     analogWrite(MOTOR_B1, 85); // Right motor forward
     digitalWrite(MOTOR_B2, HIGH);       // Ensure right motor doesn't go backward
-    action = "turn right";
+    action = "forward";
     speed = 182;
     // steering_Error();
     // Serial.print("leftspeed: ");
@@ -778,10 +787,10 @@ void adjustSteering(int steeringError)
     right_Pixel();
     digitalWrite(MOTOR_A2, HIGH);
     digitalWrite(MOTOR_B2, HIGH);
-    analogWrite(MOTOR_A1, 60);
+    analogWrite(MOTOR_A1, 55);// initially 60
     analogWrite(MOTOR_B1, 95);
-    action = "turn right";
-    speed = 177;
+    action = "forward";
+    speed = 173;
     // steering_Error();
   }
   else if (steeringError == 0)
@@ -792,7 +801,7 @@ void adjustSteering(int steeringError)
     analogWrite(MOTOR_A1, 60);      
     analogWrite(MOTOR_B1, 60); 
     digitalWrite(MOTOR_B2, HIGH);
-    action = "straight";
+    action = "forward";
     speed = 195;
     // steering_Error();
   }
@@ -809,10 +818,10 @@ void adjustSteering(int steeringError)
     // Apply motor speeds
     left_Pixel();
     digitalWrite(MOTOR_A2, HIGH); // Left motor forward
-    analogWrite(MOTOR_A1, 85);      // Ensure left motor doesn't go backward
+    analogWrite(MOTOR_A1, 90);      // Ensure left motor doesn't go backward
     analogWrite(MOTOR_B1, 60); // Right motor forward
     digitalWrite(MOTOR_B2, HIGH);       // Ensure right motor doesn't go backward
-    action = "turn left";
+    action = "forward";
     speed = 182;
     // steering_Error();
   }
@@ -822,8 +831,8 @@ void adjustSteering(int steeringError)
     digitalWrite(MOTOR_A2, HIGH);
     digitalWrite(MOTOR_B2, HIGH);
     analogWrite(MOTOR_A1, 95);
-    analogWrite(MOTOR_B1, 60);
-    action = "turn left";
+    analogWrite(MOTOR_B1, 55);
+    action = "forward";
     speed = 177;
     // steering_Error();
   }
@@ -895,7 +904,7 @@ void grabCone()
           }
         forward(10); // move forward until over square
         rotate_l();  // spin onto track
-        forward(40);
+        forward(15);
         stop_();
         hasExecuted = true; // Mark as executed
     }
@@ -1003,7 +1012,7 @@ void Initializing()
 {
   for (int i = 0; i < 8; i++) {
     pinMode(linePins[i], INPUT);
-    sensorStates[i] = "white"; // Initial state for all sensors
+    sensorStates[i] = 0; // Initial state for all sensors
 
     // Initialize recent readings
     for (int j = 0; j < AVERAGE_WINDOW; j++) {
@@ -1261,10 +1270,10 @@ void line_adjustSteering(int line_steeringError)
     // Apply motor speeds
     analogWrite(MOTOR_A1, 130); // Left motor forward
     digitalWrite(MOTOR_A2, HIGH);      // Ensure left motor doesn't go backward
-    analogWrite(MOTOR_B1, 50); // Right motor forward
+    analogWrite(MOTOR_B1, 40); // Right motor forward
     digitalWrite(MOTOR_B2, HIGH);       // Ensure right motor doesn't go backward
     action = "turn left";
-    speed = 175;
+    speed = 170;
   }
   else if (line_steeringError >= 6) // 11
   {
@@ -1277,12 +1286,12 @@ void line_adjustSteering(int line_steeringError)
     rightSpeed = constrain(rightSpeed, 0, 255);
 
     // Apply motor speeds
-    analogWrite(MOTOR_A1, 50); // Left motor forward
+    analogWrite(MOTOR_A1, 40); // Left motor forward
     digitalWrite(MOTOR_A2, HIGH);      // Ensure left motor doesn't go backward
     analogWrite(MOTOR_B1, 130); // Right motor forward
     digitalWrite(MOTOR_B2, HIGH);       // Ensure right motor doesn't go backward
-    action = "turn right"
-    speed = 175;
+    action = "turn right";
+    speed = 170;
 
   }
   // Optional: Debugging output
@@ -1299,7 +1308,7 @@ void line_adjustSteering(int line_steeringError)
     }
     backwards(30);
     stop_();
-    delay(10000);
+    Finish = true;
   }
 }
 

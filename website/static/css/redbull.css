@@ -192,7 +192,6 @@ p {
   text-align: center; /* Ensure text stays centered */
   cursor: pointer; /* Add pointer cursor on hover */
   transition: background-color 0.3s ease; /* Smooth hover effect */
-  
 }
 
 .contact-button:hover {
