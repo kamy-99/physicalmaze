@@ -1,0 +1,280 @@
+.logo {
+  
+  display: grid;
+  margin-left: 2px;
+}
+
+.search-bar {
+  display: grid;
+  margin-right: 100px;
+  
+
+}
+
+
+
+
+.header{
+  height: 70px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: gray;
+  margin-bottom: 50px;
+  background-color: rgb(6, 6, 88);  
+
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+
+
+body{
+  margin: 0;
+}
+
+
+
+
+
+
+
+
+
+
+p {
+  font-family: Roboto, Arial;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.thumbnail {
+  width: 100%;
+  border-radius: 8px;
+  
+}
+
+
+
+.video-title {
+  margin-top: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  margin-bottom: 12px;
+}
+
+.video-info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  border-bottom-right-radius: 10px;
+  border-bottom-left-radius: 10px;
+  border-top: none;
+  padding-bottom: 100px;
+  padding-top: 20px;
+  margin-top: -20px;
+}
+
+
+.video-info{
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.video-grid:hover{
+  cursor: pointer;
+
+}
+
+.video-link {
+  text-decoration: none; 
+  color: inherit;        
+  display: block;        
+}
+
+
+.thumbnail-row {
+  margin-bottom: 12px;
+}
+
+.video-author,
+.video-stats {
+  font-size: 12px;
+  color: rgb(96, 96, 96);
+}
+
+.video-author {
+  margin-bottom: 4px;
+}
+
+.video-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  column-gap: 16px;
+  row-gap: 40px;
+  margin-right: 100px;
+  margin-left: 100px;
+  border-radius: 8px;
+  margin-bottom: 100px;
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+.left-section{
+  width: 150px;
+  justify-content: space-between;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-left: 5px;
+}
+
+.left-icons{
+  height: 50px;
+  width: 50px;
+}
+
+.options{
+  width: 100%;
+}
+
+.left-button{
+  height: 35px;
+  width: 35px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 7px;
+  border-radius: 50px;
+  background-color: white;
+  margin-left: 5px;
+  margin-right: 5px;
+  border-width: 0px;
+}
+
+.left-button:hover{
+  background-color: gray;
+  cursor: pointer;
+}
+
+.middle-section {
+  display: flex;
+  justify-content: center; /* Center horizontally */
+  align-items: center; /* Center vertically */
+  flex: 1; /* Take up remaining space for proper centering */
+}
+
+.contact-button {
+  display: flex; /* Treat the button as a flex container */
+  justify-content: center; /* Center text horizontally */
+  align-items: center; /* Center text vertically */
+  padding: 10px 20px; /* Add padding for a larger clickable area */
+  background-color: rgb(6, 6, 88); /* Set a primary background color */
+  color: white; /* Set text color to white for contrast */
+  font-size: 14px; /* Slightly smaller, more subtle font size */
+  font-weight: 500; /* Medium font weight for clean look */
+  border: none; /* Remove borders for simplicity */
+  border-radius: 6px; /* Add slightly rounded corners */
+  text-decoration: none; /* Remove underline from link */
+  text-align: center; /* Ensure text stays centered */
+  cursor: pointer; /* Add pointer cursor on hover */
+  transition: background-color 0.3s ease; /* Smooth hover effect */
+  
+}
+
+.contact-button:hover {
+  background-color: white; /* Change background to white on hover */
+  color: rgb(6, 6, 88); /* Change text color to the primary color */
+  text-decoration: none;
+}
+
+.contact-link{
+  text-decoration: none;
+}
+
+.right-section{
+  margin-right: 10px;
+}
+
+.youtube-logo{
+  height: 20px;
+  padding-top: 2px;
+
+}
+
+.youtube-button{
+  background-color: white;
+  border-width: 0px;
+  border-radius: 20px;
+}
+
+.youtube-button:hover{
+  background-color: gray;
+  cursor: pointer;
+
+}
+
+
+
+
+/* 
+code for the bot web page specifically 
+*/
+
+
+
+
+
+
+
+
+
+
+
+.content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: calc(100vh - 70px);
+  background-color: #f0f0f0;
+  margin-top: -50px;
+}
+
+.status-grid {
+  display: flex;
+  gap: 20px;
+}
+
+.status-box {
+  width: 200px;
+  height: 150px;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  display: flex;
+  flex-direction:column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-size: 20px;
+  font-weight: bold;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.status-box span {
+  font-size: 16px;
+  color: #555;
+}
